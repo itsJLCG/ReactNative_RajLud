@@ -14,6 +14,7 @@ import EditProfileScreen from './src/screens/EditProfileScreen';
 import SingleProductScreen from './src/screens/SingleProductScreen';
 import MyOrdersScreen from './src/screens/MyOrdersScreen';
 import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
+import ReviewsScreen from './src/screens/ReviewsScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
@@ -28,6 +29,7 @@ const ProfileStackScreen = () => {
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <ProfileStack.Screen name="MyOrders" component={MyOrdersScreen} />
       <ProfileStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+      <ProfileStack.Screen name="Reviews" component={ReviewsScreen} />
     </ProfileStack.Navigator>
   );
 };

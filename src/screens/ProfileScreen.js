@@ -26,9 +26,12 @@ const ProfileScreen = ({ navigation }) => {
       badge: 5,
       onPress: () => navigation.navigate('MyOrders')
     },
-    { icon: 'heart-outline', title: 'Wishlist', badge: 3 },
-    { icon: 'location-outline', title: 'Shipping Addresses' },
-    { icon: 'card-outline', title: 'Payment Methods' },
+    { 
+      icon: 'star-outline', 
+      title: 'My Reviews', 
+      badge: 3,
+      onPress: () => navigation.navigate('Reviews')
+    },
     { icon: 'settings-outline', title: 'Account Settings' },
     { icon: 'help-circle-outline', title: 'Help & Support' },
   ];
