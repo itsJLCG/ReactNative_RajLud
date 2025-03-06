@@ -67,7 +67,10 @@ const CartScreen = ({ navigation }) => {
               <Text style={styles.finalTotalLabel}>Total</Text>
               <Text style={styles.finalTotalValue}>${(parseFloat(calculateTotal()) + 5).toFixed(2)}</Text>
             </View>
-            <TouchableOpacity style={styles.checkoutButton}>
+            <TouchableOpacity 
+              style={styles.checkoutButton}
+              onPress={() => navigation.navigate('Checkout')}
+            >
               <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
             </TouchableOpacity>
           </View>

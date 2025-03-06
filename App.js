@@ -15,6 +15,7 @@ import SingleProductScreen from './src/screens/SingleProductScreen';
 import MyOrdersScreen from './src/screens/MyOrdersScreen';
 import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
 import ReviewsScreen from './src/screens/ReviewsScreen';
+import CheckoutScreen from './src/screens/CheckoutScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
@@ -125,6 +126,13 @@ const HomeStack = () => {
         options={({ route }) => ({
           title: "Product Details"
         })}
+      />
+      <HomeStackNav.Screen 
+        name="Checkout" 
+        component={CheckoutScreen} 
+        options={{
+          title: "Checkout"
+        }}
       />
     </HomeStackNav.Navigator>
   );
