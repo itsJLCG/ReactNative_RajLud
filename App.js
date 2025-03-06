@@ -1,19 +1,142 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
-import ShopScreen from './screens/ShopScreen'; // Ensure the path is correct based on your folder structure
+import React from 'react';
+import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { Provider } from 'react-redux';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { store } from './src/store/store';
+import HomeScreen from './src/screens/HomeScreen';
+import CartScreen from './src/screens/CartScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import SignupScreen from './src/screens/SignupScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function App() {
+const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+// Bottom tabs navigation after login
+const MainTabs = () => {
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-      <ShopScreen />
-    </View>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === 'HomeTab') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'ProfileTab') {
+            iconName = focused ? 'person' : 'person-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#1E3A8A',
+        tabBarInactiveTintColor: '#6B7280',
+        tabBarStyle: {
+          height: 60,
+          paddingBottom: 10,
+          paddingTop: 10,
+        },
+        headerShown: false,
+      })}
+    >
+      <Tab.Screen 
+        name="HomeTab" 
+        component={HomeStack} 
+        options={{
+          title: "Home"
+        }}
+      />
+      <Tab.Screen 
+        name="ProfileTab" 
+        component={ProfileScreen} 
+        options={{
+          title: "Profile"
+        }}
+      />
+    </Tab.Navigator>
   );
-}
+};
+
+// Home stack for nested navigation from home tab
+const HomeStackNav = createStackNavigator();
+
+const HomeStack = () => {
+  return (
+    <HomeStackNav.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#1E3A8A',
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerTitleAlign: 'center',
+      }}
+    >
+      <HomeStackNav.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={({ navigation }) => ({
+          title: "ShopEase",
+          headerRight: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Cart')}
+              style={styles.headerButton}
+            >
+              <Ionicons name="cart-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <HomeStackNav.Screen 
+        name="Cart" 
+        component={CartScreen} 
+        options={{
+          title: "Your Cart"
+        }}
+      />
+    </HomeStackNav.Navigator>
+  );
+};
+
+// Main app component with authentication flow
+const App = () => {
+  return (
+    <Provider store={store}>
+      <NavigationContainer>
+        <Stack.Navigator 
+          initialRouteName="Login"
+          screenOptions={{
+            headerShown: false
+          }}
+        >
+          <Stack.Screen 
+            name="Login" 
+            component={LoginScreen}
+          />
+          <Stack.Screen 
+            name="Signup" 
+            component={SignupScreen}
+          />
+          <Stack.Screen 
+            name="MainApp" 
+            component={MainTabs}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Provider>
+  );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  headerButton: {
+    paddingHorizontal: 15,
   },
 });
+
+export default App;
