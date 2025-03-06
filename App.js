@@ -10,6 +10,7 @@ import CartScreen from './src/screens/CartScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import SingleProductScreen from './src/screens/SingleProductScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
@@ -99,6 +100,13 @@ const HomeStack = () => {
         options={{
           title: "Your Cart"
         }}
+      />
+      <HomeStackNav.Screen 
+        name="SingleProduct" 
+        component={SingleProductScreen} 
+        options={({ route }) => ({
+          title: "Product Details"
+        })}
       />
     </HomeStackNav.Navigator>
   );

@@ -1,10 +1,21 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const ProductCard = ({ product, onAddToCart }) => {
+  const navigation = useNavigation();
+  
+  const handleProductPress = () => {
+    navigation.navigate('SingleProduct', { productId: product.id });
+  };
+  
   return (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={handleProductPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.imageContainer}>
         <Image source={{ uri: product.image }} style={styles.image} />
       </View>
@@ -14,13 +25,16 @@ const ProductCard = ({ product, onAddToCart }) => {
           <Text style={styles.price}>${product.price.toFixed(2)}</Text>
           <TouchableOpacity 
             style={styles.addButton} 
-            onPress={() => onAddToCart(product)}
+            onPress={(e) => {
+              e.stopPropagation();
+              onAddToCart(product);
+            }}
           >
             <Ionicons name="add" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
