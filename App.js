@@ -10,11 +10,27 @@ import CartScreen from './src/screens/CartScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
 import SingleProductScreen from './src/screens/SingleProductScreen';
+import MyOrdersScreen from './src/screens/MyOrdersScreen';
+import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const ProfileStack = createStackNavigator();
+
+// Profile stack for nested navigation from profile tab
+const ProfileStackScreen = () => {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="Profile" component={ProfileScreen} />
+      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <ProfileStack.Screen name="MyOrders" component={MyOrdersScreen} />
+      <ProfileStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+    </ProfileStack.Navigator>
+  );
+};
 
 // Bottom tabs navigation after login
 const MainTabs = () => {
@@ -51,7 +67,7 @@ const MainTabs = () => {
       />
       <Tab.Screen 
         name="ProfileTab" 
-        component={ProfileScreen} 
+        component={ProfileStackScreen} 
         options={{
           title: "Profile"
         }}

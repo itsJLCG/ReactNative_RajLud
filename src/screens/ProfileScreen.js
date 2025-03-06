@@ -20,7 +20,12 @@ const ProfileScreen = ({ navigation }) => {
   });
 
   const menuItems = [
-    { icon: 'cart-outline', title: 'My Orders', badge: 5 },
+    { 
+      icon: 'cart-outline', 
+      title: 'My Orders', 
+      badge: 5,
+      onPress: () => navigation.navigate('MyOrders')
+    },
     { icon: 'heart-outline', title: 'Wishlist', badge: 3 },
     { icon: 'location-outline', title: 'Shipping Addresses' },
     { icon: 'card-outline', title: 'Payment Methods' },
@@ -33,6 +38,10 @@ const ProfileScreen = ({ navigation }) => {
       index: 0,
       routes: [{ name: 'Login' }],
     });
+  };
+
+  const handleEditProfile = () => {
+    navigation.navigate('EditProfile', { user });
   };
 
   return (
@@ -52,14 +61,21 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.profileEmail}>{user.email}</Text>
             <Text style={styles.profilePhone}>{user.phone}</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={handleEditProfile}
+          >
             <Ionicons name="create-outline" size={20} color="#1E3A8A" />
           </TouchableOpacity>
         </View>
         
         <View style={styles.menuContainer}>
           {menuItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.menuItem}>
+            <TouchableOpacity 
+            key={index} 
+            style={styles.menuItem}
+            onPress={item.onPress}
+            >
               <View style={styles.menuIconContainer}>
                 <Ionicons name={item.icon} size={22} color="#1E3A8A" />
               </View>
