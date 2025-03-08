@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,9 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  SafeAreaView
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { signup } from '../actions/authActions';
 
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -21,8 +24,19 @@ const SignupScreen = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   
-  const handleSignup = () => {
+  const dispatch = useDispatch();
+  const { isLoading, isAuthenticated, error } = useSelector(state => state.auth);
+  
+  // Redirect if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigation.navigate('Login');
+    }
+  }, [isAuthenticated, navigation]);
+  
+  const handleSignup = async () => {
     // Basic validation
     if (!name || !email || !password) {
       Alert.alert('Error', 'All fields are required');
@@ -39,12 +53,20 @@ const SignupScreen = ({ navigation }) => {
       return;
     }
     
-    // Success case - would normally make an API call here
-    Alert.alert(
-      'Success', 
-      'Account created successfully!',
-      [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-    );
+    if (!agreeToTerms) {
+      Alert.alert('Error', 'You must agree to the Terms of Service');
+      return;
+    }
+    
+    const result = await dispatch(signup(name, email, password));
+    
+    if (result.success) {
+      Alert.alert(
+        'Success', 
+        'Account created successfully!',
+        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+      );
+    }
   };
   
   return (
@@ -71,6 +93,13 @@ const SignupScreen = ({ navigation }) => {
           </View>
           
           <View style={styles.formContainer}>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+            
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Full Name</Text>
               <View style={styles.inputWrapper}>
@@ -151,17 +180,28 @@ const SignupScreen = ({ navigation }) => {
               </View>
             </View>
             
-            <TouchableOpacity style={styles.termsContainer}>
+            <TouchableOpacity 
+              style={styles.termsContainer}
+              onPress={() => setAgreeToTerms(!agreeToTerms)}
+            >
               <View style={styles.checkbox}>
-                <Ionicons name="checkmark" size={14} color="#1E3A8A" />
+                {agreeToTerms && <Ionicons name="checkmark" size={14} color="#1E3A8A" />}
               </View>
               <Text style={styles.termsText}>
                 I agree to the <Text style={styles.termsLink}>Terms of Service</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
-              <Text style={styles.signupButtonText}>Create Account</Text>
+            <TouchableOpacity 
+              style={[styles.signupButton, isLoading && styles.signupButtonDisabled]} 
+              onPress={handleSignup}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.signupButtonText}>Create Account</Text>
+              )}
             </TouchableOpacity>
             
             <View style={styles.divider}>
@@ -194,6 +234,7 @@ const SignupScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -361,7 +402,15 @@ const styles = StyleSheet.create({
     color: '#1E3A8A',
     fontSize: 16,
     fontWeight: '600',
-  }
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
 });
 
 export default SignupScreen;

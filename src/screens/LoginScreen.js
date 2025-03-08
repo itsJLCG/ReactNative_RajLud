@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,25 +10,38 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  SafeAreaView
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { login } from '../actions/authActions';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
-  // Static credentials for demonstration
-  const staticEmail = 'test@example.com';
-  const staticPassword = 'password123';
+  const dispatch = useDispatch();
+  const { isLoading, isAuthenticated, error } = useSelector(state => state.auth);
   
-  const handleLogin = () => {
-    if (email === staticEmail && password === staticPassword) {
-      // Navigate to main app with tabs on successful login
+  // Redirect if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
       navigation.replace('MainApp');
-    } else {
-      Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
+    }
+  }, [isAuthenticated, navigation]);
+  
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+    
+    const result = await dispatch(login(email, password));
+    
+    if (!result.success) {
+      Alert.alert('Login Failed', result.message);
     }
   };
   
@@ -49,6 +62,13 @@ const LoginScreen = ({ navigation }) => {
         
         <View style={styles.formContainer}>
           <Text style={styles.title}>Welcome Back</Text>
+          
+          {error && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
           
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
@@ -95,8 +115,16 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Sign In</Text>
+          <TouchableOpacity 
+            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]} 
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
           
           <View style={styles.divider}>
@@ -170,6 +198,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: 'center',
   },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#B91C1C',
+    fontSize: 14,
+    marginLeft: 8,
+  },
   inputContainer: {
     marginBottom: 18,
   },
@@ -216,6 +257,9 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginBottom: 20,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#93C5FD',
   },
   loginButtonText: {
     color: 'white',

@@ -9,8 +9,11 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch } from 'react-redux';
+import { LOGOUT } from '../constants/actionTypes';
 
 const ProfileScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
   // Static user data for demonstration
   const [user, setUser] = useState({
     name: 'John Doe',
@@ -37,9 +40,13 @@ const ProfileScreen = ({ navigation }) => {
   ];
 
   const handleLogout = () => {
+    // Dispatch the logout action to Redux
+    dispatch({ type: LOGOUT });
+    
+    // Navigate to Login or Auth screen
     navigation.reset({
       index: 0,
-      routes: [{ name: 'Login' }],
+      routes: [{ name: 'Login' }], // Update this to your actual login screen name
     });
   };
 
