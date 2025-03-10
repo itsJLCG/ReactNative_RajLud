@@ -11,3 +11,9 @@ export const SIGNUP_REQUEST = 'SIGNUP_REQUEST';
 export const SIGNUP_SUCCESS = 'SIGNUP_SUCCESS';
 export const SIGNUP_FAILURE = 'SIGNUP_FAILURE';
 export const LOGOUT = 'LOGOUT';
+
+// Checkout action types
+export const PLACE_ORDER_REQUEST = 'PLACE_ORDER_REQUEST';
+export const PLACE_ORDER_SUCCESS = 'PLACE_ORDER_SUCCESS';
+export const PLACE_ORDER_FAILURE = 'PLACE_ORDER_FAILURE';
+export const CLEAR_CART = 'CLEAR_CART';

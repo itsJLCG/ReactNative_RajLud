@@ -11,12 +11,16 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { clearCart } from '../actions/cartActions';
+import { placeOrder } from '../actions/orderActions';
 
 const CheckoutScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
   const cartItems = useSelector(state => state.cart.items);
+  const { loading } = useSelector(state => state.orders);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+ 
   // Default shipping address - in a real app, this would come from user's saved addresses
   const [selectedAddress] = useState({
     name: 'John Doe',
@@ -46,30 +50,36 @@ const CheckoutScreen = ({ navigation }) => {
       return;
     }
     
-    try {
-      setIsProcessing(true);
+    setIsProcessing(true);
+    
+    // Create order object with all the order details
+    const orderData = {
+      items: cartItems,
+      shippingAddress: selectedAddress,
+      paymentMethod: selectedPaymentMethod.type,
+      subtotal: subtotal,
+      shippingCost: shipping,
+      tax: tax,
+      total: total,
+      trackingNumber: 'Pending'
+    };
+    
+    const result = await dispatch(placeOrder(orderData));
+    
+    setIsProcessing(false);
+    
+    if (result.success) {
+      // Clear the cart
+      dispatch(clearCart());
       
-      // In a real app, you would make an API call to process the order
-      // await api.createOrder({ items: cartItems, address: selectedAddress, paymentMethod: selectedPaymentMethod });
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Success
+      // Show success message
       Alert.alert(
         'Success',
         'Your order has been placed successfully!',
-        [{ text: 'OK', onPress: () => {
-          // Navigate to MyOrders and reset cart
-          navigation.navigate('MyOrders');
-          // Here you would also dispatch an action to clear the cart
-          // dispatch(clearCart());
-        }}]
+        [{ text: 'OK', onPress: () => navigation.navigate('OrderHistory') }]
       );
-    } catch (error) {
+    } else {
       Alert.alert('Error', 'Failed to place order. Please try again.');
-    } finally {
-      setIsProcessing(false);
     }
   };
   
@@ -190,11 +200,11 @@ const CheckoutScreen = ({ navigation }) => {
       {/* Place Order Button */}
       <View style={styles.footer}>
         <TouchableOpacity 
-          style={[styles.placeOrderButton, isProcessing && styles.disabledButton]}
+          style={[styles.placeOrderButton, (isProcessing || loading) && styles.disabledButton]}
           onPress={handlePlaceOrder}
-          disabled={isProcessing || cartItems.length === 0}
+          disabled={isProcessing || loading || cartItems.length === 0}
         >
-          {isProcessing ? (
+          {isProcessing || loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.placeOrderButtonText}>Place Order • ${total.toFixed(2)}</Text>
