@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,173 +11,17 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchOrderDetails } from '../actions/orderActions';
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
-  const [isLoading, setIsLoading] = useState(true);
-  const [order, setOrder] = useState(null);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { currentOrder, loading, error } = useSelector(state => state.orders);
 
   useEffect(() => {
-    // Simulate API call to fetch order details
-    const fetchOrderDetails = async () => {
-      try {
-        setIsLoading(true);
-        // In a real app, you would fetch from your API
-        // const response = await fetch(`${API_URL}/api/v1/orders/${orderId}`);
-        // const data = await response.json();
-
-        // Simulated data delay
-        setTimeout(() => {
-          // Sample data - this should match the selected order from MyOrdersScreen
-          if (orderId === 'ORD-12345') {
-            setOrder({
-              id: 'ORD-12345',
-              date: '2025-02-28',
-              status: 'Delivered',
-              total: 129.99,
-              items: [
-                {
-                  id: 1,
-                  name: 'Wireless Bluetooth Headphones',
-                  quantity: 1,
-                  price: 79.99,
-                  image: 'https://fakestoreapi.com/img/81Zt42ioCgL._AC_SX679_.jpg'
-                },
-                {
-                  id: 2,
-                  name: 'Smart Watch Series 5',
-                  quantity: 1,
-                  price: 49.99,
-                  image: 'https://fakestoreapi.com/img/71Swqqe7XAL._AC_SX466_.jpg'
-                }
-              ],
-              shippingAddress: {
-                name: 'John Doe',
-                street: '123 Main St',
-                city: 'New York',
-                state: 'NY',
-                zip: '10001',
-                country: 'United States'
-              },
-              paymentMethod: 'Credit Card (•••• 4242)',
-              shippingMethod: 'Express Shipping',
-              subtotal: 129.98,
-              shippingCost: 0,
-              tax: 10.01,
-              discount: 10.00,
-              trackingNumber: 'TRK928192819',
-              deliveredDate: '2025-03-03',
-              trackingHistory: [
-                {
-                  status: 'Delivered',
-                  date: '2025-03-03',
-                  location: 'New York, NY'
-                },
-                {
-                  status: 'Out for delivery',
-                  date: '2025-03-03',
-                  location: 'Local Delivery Facility, NY'
-                },
-                {
-                  status: 'Shipped',
-                  date: '2025-03-01',
-                  location: 'Distribution Center, NJ'
-                },
-                {
-                  status: 'Order processed',
-                  date: '2025-02-28',
-                  location: 'Warehouse'
-                }
-              ]
-            });
-          } else if (orderId === 'ORD-12346') {
-            setOrder({
-              id: 'ORD-12346',
-              date: '2025-02-15',
-              status: 'Shipped',
-              total: 79.95,
-              items: [
-                {
-                  id: 3,
-                  name: 'Portable External SSD 1TB',
-                  quantity: 1,
-                  price: 79.95,
-                  image: 'https://fakestoreapi.com/img/61IBBVJvSDL._AC_SY879_.jpg'
-                }
-              ],
-              shippingAddress: {
-                name: 'John Doe',
-                street: '123 Main St',
-                city: 'New York',
-                state: 'NY',
-                zip: '10001',
-                country: 'United States'
-              },
-              paymentMethod: 'PayPal',
-              shippingMethod: 'Standard Shipping',
-              subtotal: 79.95,
-              shippingCost: 4.99,
-              tax: 6.99,
-              discount: 12.00,
-              trackingNumber: 'TRK828172615',
-              trackingHistory: [
-                {
-                  status: 'Shipped',
-                  date: '2025-02-18',
-                  location: 'Distribution Center, CA'
-                },
-                {
-                  status: 'Order processed',
-                  date: '2025-02-15',
-                  location: 'Warehouse'
-                }
-              ]
-            });
-          } else {
-            // Generic order for IDs we don't have predefined data for
-            setOrder({
-              id: orderId,
-              date: '2025-01-30',
-              status: 'Processing',
-              total: 99.99,
-              items: [
-                {
-                  id: 5,
-                  name: 'Generic Product',
-                  quantity: 1,
-                  price: 99.99,
-                  image: 'https://fakestoreapi.com/img/71li-ujtlUL._AC_UX679_.jpg'
-                }
-              ],
-              shippingAddress: {
-                name: 'John Doe',
-                street: '123 Main St',
-                city: 'New York',
-                state: 'NY',
-                zip: '10001',
-                country: 'United States'
-              },
-              paymentMethod: 'Credit Card',
-              shippingMethod: 'Standard Shipping',
-              subtotal: 99.99,
-              shippingCost: 4.99,
-              tax: 8.75,
-              discount: 0,
-              trackingNumber: 'Pending'
-            });
-          }
-          setIsLoading(false);
-        }, 1000);
-      } catch (err) {
-        setError('Failed to load order details');
-        setIsLoading(false);
-        console.error(err);
-      }
-    };
-
-    fetchOrderDetails();
-  }, [orderId]);
+    dispatch(fetchOrderDetails(orderId));
+  }, [dispatch, orderId]);
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -244,7 +88,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     );
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color="#1E3A8A" />
@@ -252,7 +96,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     );
   }
 
-  if (error || !order) {
+  if (error || !currentOrder) {
     return (
       <SafeAreaView style={styles.centered}>
         <Ionicons name="alert-circle-outline" size={60} color="#EF4444" />
@@ -282,18 +126,18 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         <View style={styles.card}>
           <View style={styles.orderHeader}>
             <View>
-              <Text style={styles.orderId}>{order.id}</Text>
-              <Text style={styles.orderDate}>Placed on {formatDate(order.date)}</Text>
+              <Text style={styles.orderId}>{currentOrder.id}</Text>
+              <Text style={styles.orderDate}>Placed on {formatDate(currentOrder.date)}</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) + '20' }]}>
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(order.status) }]} />
-              <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>{order.status}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(currentOrder.status) + '20' }]}>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor(currentOrder.status) }]} />
+              <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
             </View>
           </View>
         </View>
 
         {/* Tracking Information Card */}
-        {order.trackingNumber && order.trackingNumber !== 'Pending' && (
+        {currentOrder.trackingNumber && currentOrder.trackingNumber !== 'Pending' && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Tracking Information</Text>
@@ -301,16 +145,16 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
             <View style={styles.trackingInfo}>
               <Text style={styles.trackingLabel}>Tracking Number:</Text>
-              <Text style={styles.trackingNumber}>{order.trackingNumber}</Text>
+              <Text style={styles.trackingNumber}>{currentOrder.trackingNumber}</Text>
             </View>
 
-            {order.trackingHistory && (
+            {currentOrder.trackingHistory && (
               <View style={styles.trackingTimeline}>
-                {order.trackingHistory.map((event, index) => (
+                {currentOrder.trackingHistory.map((event, index) => (
                   <View key={index} style={styles.trackingEvent}>
                     <View style={styles.timelineLeft}>
                       <View style={[styles.timelineDot, { backgroundColor: getStatusColor(event.status) }]} />
-                      {index !== order.trackingHistory.length - 1 && <View style={styles.timelineLine} />}
+                      {index !== currentOrder.trackingHistory.length - 1 && <View style={styles.timelineLine} />}
                     </View>
                     <View style={styles.timelineContent}>
                       <Text style={styles.trackingStatus}>{event.status}</Text>
@@ -330,7 +174,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             <Text style={styles.cardTitle}>Items in Your Order</Text>
           </View>
 
-          {order.items.map((item) => (
+          {currentOrder.items.map((item) => (
             <View key={item.id} style={styles.orderItem}>
               <Image source={{ uri: item.image }} style={styles.itemImage} />
               <View style={styles.itemDetails}>
@@ -349,19 +193,19 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.addressContainer}>
-            <Text style={styles.addressName}>{order.shippingAddress.name}</Text>
-            <Text style={styles.addressLine}>{order.shippingAddress.street}</Text>
+            <Text style={styles.addressName}>{currentOrder.shippingAddress.name}</Text>
+            <Text style={styles.addressLine}>{currentOrder.shippingAddress.street}</Text>
             <Text style={styles.addressLine}>
-              {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}
+              {currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} {currentOrder.shippingAddress.zip}
             </Text>
-            <Text style={styles.addressLine}>{order.shippingAddress.country}</Text>
+            <Text style={styles.addressLine}>{currentOrder.shippingAddress.country}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.shippingMethod}>
             <Text style={styles.shippingMethodLabel}>Shipping Method:</Text>
-            <Text style={styles.shippingMethodValue}>{order.shippingMethod}</Text>
+            <Text style={styles.shippingMethodValue}>{currentOrder.shippingMethod}</Text>
           </View>
         </View>
 
@@ -373,7 +217,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
           <View style={styles.paymentMethod}>
             <Ionicons name="card-outline" size={22} color="#1E3A8A" style={styles.paymentIcon} />
-            <Text style={styles.paymentText}>{order.paymentMethod}</Text>
+            <Text style={styles.paymentText}>{currentOrder.paymentMethod}</Text>
           </View>
 
           <View style={styles.divider} />
@@ -381,34 +225,34 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <View style={styles.priceBreakdown}>
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Subtotal</Text>
-              <Text style={styles.priceValue}>${order.subtotal?.toFixed(2)}</Text>
+              <Text style={styles.priceValue}>${currentOrder.subtotal?.toFixed(2)}</Text>
             </View>
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Shipping</Text>
-              <Text style={styles.priceValue}>${order.shippingCost?.toFixed(2) || '0.00'}</Text>
+              <Text style={styles.priceValue}>${currentOrder.shippingCost?.toFixed(2) || '0.00'}</Text>
             </View>
-            {order.tax > 0 && (
+            {currentOrder.tax > 0 && (
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Tax</Text>
-                <Text style={styles.priceValue}>${order.tax.toFixed(2)}</Text>
+                <Text style={styles.priceValue}>${currentOrder.tax.toFixed(2)}</Text>
               </View>
             )}
-            {order.discount > 0 && (
+            {currentOrder.discount > 0 && (
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Discount</Text>
-                <Text style={styles.priceValue}>-${order.discount.toFixed(2)}</Text>
+                <Text style={styles.priceValue}>-${currentOrder.discount.toFixed(2)}</Text>
               </View>
             )}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>${currentOrder.total.toFixed(2)}</Text>
             </View>
           </View>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
+          {currentOrder.status !== 'Delivered' && currentOrder.status !== 'Cancelled' && (
             <TouchableOpacity 
               style={[styles.actionButton, styles.cancelButton]} 
               onPress={handleCancelOrder}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,77 +9,16 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchOrders } from '../actions/orderActions';
 
 const MyOrdersScreen = ({ navigation }) => {
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { orders, loading, error } = useSelector(state => state.orders);
 
-  // Sample orders data - in a real app, this would come from your API
   useEffect(() => {
-    // Simulate API call delay
-    const fetchOrders = async () => {
-      try {
-        setIsLoading(true);
-        // In a real app, you would fetch data from your API
-        // const response = await fetch(`${API_URL}/api/v1/orders/my-orders/${userId}`);
-        // const data = await response.json();
-        
-        // Simulated data
-        setTimeout(() => {
-          setOrders([
-            {
-              id: 'ORD-12345',
-              date: '2025-02-28',
-              status: 'Delivered',
-              total: 129.99,
-              items: 3,
-              trackingNumber: 'TRK928192819',
-            },
-            {
-              id: 'ORD-12346',
-              date: '2025-02-15',
-              status: 'Shipped',
-              total: 79.95,
-              items: 2,
-              trackingNumber: 'TRK828172615',
-            },
-            {
-              id: 'ORD-12347',
-              date: '2025-02-10',
-              status: 'Processing',
-              total: 199.50,
-              items: 4,
-              trackingNumber: 'TRK727162514',
-            },
-            {
-              id: 'ORD-12348',
-              date: '2025-01-25',
-              status: 'Delivered',
-              total: 49.99,
-              items: 1,
-              trackingNumber: 'TRK626152413',
-            },
-            {
-              id: 'ORD-12349',
-              date: '2025-01-12',
-              status: 'Cancelled',
-              total: 89.97,
-              items: 2,
-              trackingNumber: 'TRK525142312',
-            }
-          ]);
-          setIsLoading(false);
-        }, 1000);
-      } catch (err) {
-        setError('Failed to load orders');
-        setIsLoading(false);
-        console.error(err);
-      }
-    };
-
-    fetchOrders();
-  }, []);
+    dispatch(fetchOrders());
+  }, [dispatch]);
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -108,7 +47,7 @@ const MyOrdersScreen = ({ navigation }) => {
     >
       <View style={styles.orderHeader}>
         <View>
-          <Text style={styles.orderId}>{item.id}</Text>
+          <Text style={styles.orderId}>Order #{item.id}</Text>
           <Text style={styles.orderDate}>{formatDate(item.date)}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
@@ -122,12 +61,12 @@ const MyOrdersScreen = ({ navigation }) => {
       <View style={styles.orderDetails}>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Items</Text>
-          <Text style={styles.detailValue}>{item.items} items</Text>
+          <Text style={styles.detailValue}>{item.items.length} items</Text>
         </View>
         
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Tracking Number</Text>
-          <Text style={styles.detailValue}>{item.trackingNumber}</Text>
+          <Text style={styles.detailValue}>{item.trackingNumber || 'Pending'}</Text>
         </View>
         
         <View style={styles.detailRow}>
@@ -143,7 +82,7 @@ const MyOrdersScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  if (isLoading) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color="#1E3A8A" />

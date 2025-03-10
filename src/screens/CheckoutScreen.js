@@ -72,11 +72,16 @@ const CheckoutScreen = ({ navigation }) => {
       // Clear the cart
       dispatch(clearCart());
       
-      // Show success message
+      // Show success message and navigate to MyOrders screen through the ProfileTab
       Alert.alert(
         'Success',
         'Your order has been placed successfully!',
-        [{ text: 'OK', onPress: () => navigation.navigate('OrderHistory') }]
+        [{ 
+          text: 'OK', 
+          onPress: () => navigation.navigate('ProfileTab', {
+            screen: 'MyOrders',
+          })
+        }]
       );
     } else {
       Alert.alert('Error', 'Failed to place order. Please try again.');
