@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1070419234838",
+    "project_id": "rlreactnative-6a1e3",
+    "storage_bucket": "rlreactnative-6a1e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1070419234838:android:3042ad41aae41575292537",
+        "android_client_info": {
+          "package_name": "com.galaxies.firebase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARlL21vH4nGRBzsCBiDzt70I1MK5HSUd8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
