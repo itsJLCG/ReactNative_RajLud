@@ -21,6 +21,19 @@ const userSchema = new mongoose.Schema({
     minLength: 6,
     select: false
   },
+  address: {
+    type: String,
+    required: [true, 'Please add an address']
+  },
+  image: {
+    type: String,
+    default: null
+  },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -13,7 +13,7 @@ const generateToken = (id) => {
 // @access  Public
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, address, image } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -24,11 +24,14 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user with default role
     const user = await User.create({
       name,
       email,
-      password
+      password,
+      address,
+      image,
+      role: 'user' // Default role
     });
 
     if (user) {
@@ -38,6 +41,9 @@ exports.signup = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
+          address: user.address,
+          image: user.image,
+          role: user.role,
           token: generateToken(user._id)
         }
       });
