@@ -19,6 +19,8 @@ import CheckoutScreen from './src/screens/CheckoutScreen';
 import AdminScreen from './src/screens/Admin/AdminScreen';
 import ManageProductsScreen from './src/screens/Admin/ManageProductsScreen';
 import AddProductScreen from './src/screens/Admin/AddProductScreen';
+import ManageCategoriesScreen from './src/screens/Admin/ManageCategoriesScreen';
+import AddCategoryScreen from './src/screens/Admin/AddCategoryScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
@@ -45,6 +47,8 @@ const AdminStackScreen = () => {
       <AdminStack.Screen name="AdminDashboard" component={AdminScreen} />
       <AdminStack.Screen name="ManageProducts" component={ManageProductsScreen} />
       <AdminStack.Screen name="AddProduct" component={AddProductScreen} />
+      <AdminStack.Screen name="ManageCategories" component={ManageCategoriesScreen} />
+      <AdminStack.Screen name="AddCategory" component={AddCategoryScreen} />
       {/* <AdminStack.Screen name="EditProduct" component={EditProductScreen} /> */}
     </AdminStack.Navigator>
   );

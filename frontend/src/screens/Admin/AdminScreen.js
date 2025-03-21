@@ -30,6 +30,12 @@ const AdminScreen = ({ navigation }) => {
       onPress: () => navigation.navigate('ManageProducts')
     },
     {
+      icon: 'list',
+      title: 'Manage Categories',
+      subtitle: 'Add, edit, or remove categories',
+      onPress: () => navigation.navigate('ManageCategories')
+    },
+    {
       icon: 'people',
       title: 'Manage Users',
       subtitle: 'View and manage user accounts',
