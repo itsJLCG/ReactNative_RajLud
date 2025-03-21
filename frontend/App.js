@@ -16,11 +16,15 @@ import MyOrdersScreen from './src/screens/MyOrdersScreen';
 import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
 import ReviewsScreen from './src/screens/ReviewsScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
+import AdminScreen from './src/screens/Admin/AdminScreen';
+import ManageProductsScreen from './src/screens/Admin/ManageProductsScreen';
+import AddProductScreen from './src/screens/Admin/AddProductScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const ProfileStack = createStackNavigator();
+const AdminStack = createStackNavigator();
 
 // Profile stack for nested navigation from profile tab
 const ProfileStackScreen = () => {
@@ -32,6 +36,17 @@ const ProfileStackScreen = () => {
       <ProfileStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <ProfileStack.Screen name="Reviews" component={ReviewsScreen} />
     </ProfileStack.Navigator>
+  );
+};
+
+const AdminStackScreen = () => {
+  return (
+    <AdminStack.Navigator screenOptions={{ headerShown: false }}>
+      <AdminStack.Screen name="AdminDashboard" component={AdminScreen} />
+      <AdminStack.Screen name="ManageProducts" component={ManageProductsScreen} />
+      <AdminStack.Screen name="AddProduct" component={AddProductScreen} />
+      {/* <AdminStack.Screen name="EditProduct" component={EditProductScreen} /> */}
+    </AdminStack.Navigator>
   );
 };
 
@@ -149,18 +164,10 @@ const App = () => {
             headerShown: false
           }}
         >
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen}
-          />
-          <Stack.Screen 
-            name="Signup" 
-            component={SignupScreen}
-          />
-          <Stack.Screen 
-            name="MainApp" 
-            component={MainTabs}
-          />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen name="MainApp" component={MainTabs} />
+          <Stack.Screen name="AdminApp" component={AdminStackScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>

@@ -63,7 +63,6 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
@@ -72,7 +71,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if password matches
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -81,16 +79,20 @@ exports.login = async (req, res) => {
       });
     }
 
+    const token = generateToken(user._id);
+
     res.status(200).json({
       success: true,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        token: generateToken(user._id)
+        role: user.role,
+        token // Include token in user object
       }
     });
   } catch (error) {
+    console.error('Login Error:', error);
     res.status(400).json({
       success: false,
       error: error.message

@@ -10,6 +10,7 @@ import {
   
   const initialState = {
     user: null,
+    token: null,
     isLoading: false,
     isAuthenticated: false,
     error: null
@@ -29,9 +30,10 @@ import {
       case SIGNUP_SUCCESS:
         return {
           ...state,
-          isLoading: false,
+          user: action.payload.user,
+          token: action.payload.token, // Make sure token is included
           isAuthenticated: true,
-          user: action.payload,
+          isLoading: false,
           error: null
         };
       

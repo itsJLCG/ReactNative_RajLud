@@ -53,28 +53,42 @@ export const logout = () => ({
 });
 
 export const login = (email, password) => async (dispatch) => {
-  dispatch(loginRequest());
-
   try {
+    dispatch({ type: LOGIN_REQUEST });
+
     const response = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ email, password })
     });
 
     const data = await response.json();
+    console.log('Login response:', data); // Debug log
 
     if (data.success) {
-      dispatch(loginSuccess(data.user));
-      return { success: true };
+      dispatch({
+        type: LOGIN_SUCCESS,
+        payload: {
+          user: data.user,
+          token: data.user.token // Make sure this matches your backend response
+        }
+      });
+      return { 
+        success: true, 
+        isAdmin: data.user.role === 'admin' 
+      };
     } else {
-      dispatch(loginFailure(data.error));
-      return { success: false, message: data.error };
+      throw new Error(data.error || 'Login failed');
     }
   } catch (error) {
     console.error('Login Error:', error);
-    dispatch(loginFailure('Network error. Please try again.'));
-    return { success: false, message: 'Network error. Please try again.' };
+    dispatch({
+      type: LOGIN_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
   }
 };
 
