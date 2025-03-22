@@ -5,25 +5,28 @@ const Product = require('../models/Product');
 // @access  Private/Admin
 exports.createProduct = async (req, res) => {
   try {
-    const { name, price, description } = req.body;
+    const { name, price, description, category } = req.body;
 
     // Validate required fields
-    if (!name || !price || !description) {
+    if (!name || !price || !description || !category) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide name, price and description'
+        error: 'Please provide name, price, description and category'
       });
     }
 
     const product = await Product.create({
       name,
       price,
-      description
+      description,
+      category
     });
+
+    const populatedProduct = await Product.findById(product._id).populate('category');
 
     res.status(201).json({
       success: true,
-      product
+      product: populatedProduct
     });
   } catch (error) {
     console.error('Create Product Error:', error);
@@ -34,12 +37,15 @@ exports.createProduct = async (req, res) => {
   }
 };
 
+
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Public
 exports.getProducts = async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    const products = await Product.find()
+      .populate('category')
+      .sort({ createdAt: -1 });
     
     res.status(200).json({
       success: true,
@@ -60,7 +66,7 @@ exports.getProducts = async (req, res) => {
 // @access  Private/Admin
 exports.updateProduct = async (req, res) => {
   try {
-    const { name, price, description } = req.body;
+    const { name, price, description, category } = req.body;
     let product = await Product.findById(req.params.id);
     
     if (!product) {
@@ -72,9 +78,9 @@ exports.updateProduct = async (req, res) => {
 
     product = await Product.findByIdAndUpdate(
       req.params.id, 
-      { name, price, description },
+      { name, price, description, category }, // Added category to update
       { new: true, runValidators: true }
-    );
+    ).populate('category'); // Add populate to return category details
 
     res.status(200).json({
       success: true,

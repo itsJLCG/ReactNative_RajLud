@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCategories } from '../../actions/categoryActions';
+import { deleteCategory } from '../../actions/categoryActions';
 
 const ManageCategoriesScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -25,6 +26,32 @@ const ManageCategoriesScreen = ({ navigation }) => {
     navigation.navigate('AddCategory');
   };
 
+  const handleDeleteCategory = (categoryId) => {
+    Alert.alert(
+      'Delete Category',
+      'Are you sure you want to delete this category?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await dispatch(deleteCategory(categoryId));
+            if (result.success) {
+              Alert.alert('Success', 'Category deleted successfully');
+            } else {
+              Alert.alert('Error', result.message || 'Failed to delete category');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEditCategory = (category) => {
+    navigation.navigate('EditCategory', { category });
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.categoryItem}>
       <View style={styles.categoryInfo}>
@@ -32,13 +59,13 @@ const ManageCategoriesScreen = ({ navigation }) => {
         <Text style={styles.categoryDescription}>{item.description}</Text>
       </View>
       <View style={styles.actionButtons}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.editButton}
-          onPress={() => navigation.navigate('EditCategory', { category: item })}
+          onPress={() => handleEditCategory(item)}
         >
           <Ionicons name="create-outline" size={20} color="#38761d" />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => handleDeleteCategory(item._id)}
         >
@@ -51,14 +78,14 @@ const ManageCategoriesScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#38761d" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Categories</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addButton}
           onPress={handleAddCategory}
         >

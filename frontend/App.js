@@ -21,6 +21,8 @@ import ManageProductsScreen from './src/screens/Admin/ManageProductsScreen';
 import AddProductScreen from './src/screens/Admin/AddProductScreen';
 import ManageCategoriesScreen from './src/screens/Admin/ManageCategoriesScreen';
 import AddCategoryScreen from './src/screens/Admin/AddCategoryScreen';
+import EditCategoryScreen from './src/screens/Admin/EditCategoryScreen';
+import EditProductScreen from './src/screens/Admin/EditProductScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
@@ -49,7 +51,8 @@ const AdminStackScreen = () => {
       <AdminStack.Screen name="AddProduct" component={AddProductScreen} />
       <AdminStack.Screen name="ManageCategories" component={ManageCategoriesScreen} />
       <AdminStack.Screen name="AddCategory" component={AddCategoryScreen} />
-      {/* <AdminStack.Screen name="EditProduct" component={EditProductScreen} /> */}
+      <AdminStack.Screen name="EditCategory" component={EditCategoryScreen} />
+      <AdminStack.Screen name="EditProduct" component={EditProductScreen} /> 
     </AdminStack.Navigator>
   );
 };
@@ -80,16 +83,16 @@ const MainTabs = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen 
-        name="HomeTab" 
-        component={HomeStack} 
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeStack}
         options={{
           title: "Home"
         }}
       />
-      <Tab.Screen 
-        name="ProfileTab" 
-        component={ProfileStackScreen} 
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileStackScreen}
         options={{
           title: "Profile"
         }}
@@ -117,13 +120,13 @@ const HomeStack = () => {
         headerTitleAlign: 'center',
       }}
     >
-      <HomeStackNav.Screen 
-        name="Home" 
+      <HomeStackNav.Screen
+        name="Home"
         component={HomeScreen}
         options={({ navigation }) => ({
           title: "R&L Edge Wear",
           headerRight: () => (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => navigation.navigate('Cart')}
               style={styles.headerButton}
             >
@@ -132,23 +135,23 @@ const HomeStack = () => {
           ),
         })}
       />
-      <HomeStackNav.Screen 
-        name="Cart" 
-        component={CartScreen} 
+      <HomeStackNav.Screen
+        name="Cart"
+        component={CartScreen}
         options={{
           title: "Your Cart"
         }}
       />
-      <HomeStackNav.Screen 
-        name="SingleProduct" 
-        component={SingleProductScreen} 
+      <HomeStackNav.Screen
+        name="SingleProduct"
+        component={SingleProductScreen}
         options={({ route }) => ({
           title: "Product Details"
         })}
       />
-      <HomeStackNav.Screen 
-        name="Checkout" 
-        component={CheckoutScreen} 
+      <HomeStackNav.Screen
+        name="Checkout"
+        component={CheckoutScreen}
         options={{
           title: "Checkout"
         }}
@@ -162,7 +165,7 @@ const App = () => {
   return (
     <Provider store={store}>
       <NavigationContainer>
-        <Stack.Navigator 
+        <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
             headerShown: false

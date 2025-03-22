@@ -5,7 +5,13 @@ import {
   FETCH_CATEGORIES_FAILURE,
   CREATE_CATEGORY_REQUEST,
   CREATE_CATEGORY_SUCCESS,
-  CREATE_CATEGORY_FAILURE
+  CREATE_CATEGORY_FAILURE,
+  UPDATE_CATEGORY_REQUEST,
+  UPDATE_CATEGORY_SUCCESS,
+  UPDATE_CATEGORY_FAILURE,
+  DELETE_CATEGORY_REQUEST,
+  DELETE_CATEGORY_SUCCESS,
+  DELETE_CATEGORY_FAILURE
 } from '../constants/actionTypes';
 import { API_URL_EMULATOR, API_URL_DEVICE } from '@env';
 
@@ -125,6 +131,91 @@ export const createCategory = (categoryData) => async (dispatch, getState) => {
     console.error('Create Category Error:', error);
     dispatch({
       type: CREATE_CATEGORY_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
+  }
+};
+
+export const updateCategory = (categoryId, categoryData) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: UPDATE_CATEGORY_REQUEST });
+
+    const { auth } = getState();
+    const token = auth?.token;
+
+    if (!token) {
+      throw new Error('Authentication token not found');
+    }
+
+    const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(categoryData)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Server error: ${response.status}`);
+    }
+
+    dispatch({
+      type: UPDATE_CATEGORY_SUCCESS,
+      payload: data.category
+    });
+
+    return { success: true, category: data.category };
+  } catch (error) {
+    console.error('Update Category Error:', error);
+    dispatch({
+      type: UPDATE_CATEGORY_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
+  }
+};
+
+export const deleteCategory = (categoryId) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: DELETE_CATEGORY_REQUEST });
+
+    const { auth } = getState();
+    const token = auth?.token;
+
+    if (!token) {
+      throw new Error('Authentication token not found');
+    }
+
+    const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Server error: ${response.status}`);
+    }
+
+    dispatch({
+      type: DELETE_CATEGORY_SUCCESS,
+      payload: categoryId
+    });
+
+    return { success: true, message: 'Category deleted successfully' };
+  } catch (error) {
+    console.error('Delete Category Error:', error);
+    dispatch({
+      type: DELETE_CATEGORY_FAILURE,
       payload: error.message
     });
     return { success: false, message: error.message };

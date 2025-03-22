@@ -5,7 +5,13 @@ import {
   FETCH_PRODUCTS_FAILURE,
   CREATE_PRODUCT_REQUEST,
   CREATE_PRODUCT_SUCCESS,
-  CREATE_PRODUCT_FAILURE
+  CREATE_PRODUCT_FAILURE,
+  UPDATE_PRODUCT_REQUEST,
+  UPDATE_PRODUCT_SUCCESS,
+  UPDATE_PRODUCT_FAILURE,
+  DELETE_PRODUCT_REQUEST,
+  DELETE_PRODUCT_SUCCESS,
+  DELETE_PRODUCT_FAILURE
 } from '../constants/actionTypes';
 import { API_URL_EMULATOR, API_URL_DEVICE } from '@env';
 
@@ -108,3 +114,87 @@ export const createProduct = (productData) => async (dispatch, getState) => {
   }
 };
 
+export const updateProduct = (productId, productData) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: UPDATE_PRODUCT_REQUEST });
+
+    const { auth } = getState();
+    const token = auth?.token;
+
+    if (!token) {
+      throw new Error('Authentication token not found');
+    }
+
+    const response = await fetch(`${API_URL}/api/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(productData)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Server error: ${response.status}`);
+    }
+
+    dispatch({
+      type: UPDATE_PRODUCT_SUCCESS,
+      payload: data.product
+    });
+
+    return { success: true, product: data.product };
+  } catch (error) {
+    console.error('Update Product Error:', error);
+    dispatch({
+      type: UPDATE_PRODUCT_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
+  }
+};
+
+export const deleteProduct = (productId) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: DELETE_PRODUCT_REQUEST });
+
+    const { auth } = getState();
+    const token = auth?.token;
+
+    if (!token) {
+      throw new Error('Authentication token not found');
+    }
+
+    const response = await fetch(`${API_URL}/api/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Server error: ${response.status}`);
+    }
+
+    dispatch({
+      type: DELETE_PRODUCT_SUCCESS,
+      payload: productId
+    });
+
+    return { success: true, message: 'Product deleted successfully' };
+  } catch (error) {
+    console.error('Delete Product Error:', error);
+    dispatch({
+      type: DELETE_PRODUCT_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
+  }
+};

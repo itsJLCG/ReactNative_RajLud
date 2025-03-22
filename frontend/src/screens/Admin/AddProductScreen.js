@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,30 +8,46 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal,
+  FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { createProduct } from '../../actions/productActions';
+import { fetchCategories } from '../../actions/categoryActions';
 
 const AddProductScreen = ({ navigation }) => {
   const dispatch = useDispatch();
+  const { categories } = useSelector(state => state.categories);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [product, setProduct] = useState({
     name: '',
     price: '',
-    description: ''
+    description: '',
+    category: null
   });
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+  }, [dispatch]);
 
   const validateForm = () => {
     let tempErrors = {};
     if (!product.name.trim()) tempErrors.name = 'Product name is required';
     if (!product.price) tempErrors.price = 'Price is required';
     if (!product.description.trim()) tempErrors.description = 'Description is required';
+    if (!product.category) tempErrors.category = 'Category is required';
     
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
+  };
+
+  const handleSelectCategory = (category) => {
+    setProduct({ ...product, category: category._id });
+    setShowCategoryModal(false);
   };
 
   const handleSubmit = async () => {
@@ -59,6 +75,18 @@ const AddProductScreen = ({ navigation }) => {
       }
     }
   };
+
+  const renderCategoryItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.categoryItem}
+      onPress={() => handleSelectCategory(item)}
+    >
+      <Text style={styles.categoryName}>{item.name}</Text>
+      <Text style={styles.categoryDescription} numberOfLines={1}>{item.description}</Text>
+    </TouchableOpacity>
+  );
+
+  const selectedCategory = categories?.find(cat => cat._id === product.category);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,6 +129,23 @@ const AddProductScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>Category</Text>
+            <TouchableOpacity
+              style={[styles.categorySelector, errors.category && styles.inputError]}
+              onPress={() => setShowCategoryModal(true)}
+            >
+              <Text style={[
+                styles.categorySelectorText,
+                selectedCategory ? styles.selectedCategory : styles.placeholderText
+              ]}>
+                {selectedCategory ? selectedCategory.name : 'Select a category'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+            </TouchableOpacity>
+            {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Description</Text>
             <TextInput
               style={[styles.input, styles.textArea, errors.description && styles.inputError]}
@@ -116,6 +161,33 @@ const AddProductScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showCategoryModal}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Category</Text>
+              <TouchableOpacity
+                onPress={() => setShowCategoryModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={categories}
+              renderItem={renderCategoryItem}
+              keyExtractor={item => item._id}
+              contentContainerStyle={styles.categoryList}
+            />
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.footer}>
         <TouchableOpacity 
@@ -237,6 +309,71 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '500',
+  },
+  categorySelector: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  categorySelectorText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+  },
+  selectedCategory: {
+    color: '#1F2937',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  categoryList: {
+    padding: 16,
+  },
+  categoryItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  categoryDescription: {
+    fontSize: 14,
+    color: '#6B7280',
   },
 });
 

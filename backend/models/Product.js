@@ -17,6 +17,11 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Please add a product description'],
     trim: true
   },
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: [true, 'Please select a category']
+  },
   createdAt: {
     type: Date,
     default: Date.now

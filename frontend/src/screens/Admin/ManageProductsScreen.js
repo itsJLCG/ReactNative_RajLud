@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProducts } from '../../actions/productActions';
+import { fetchProducts, deleteProduct } from '../../actions/productActions';
 
 const ManageProductsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -20,13 +20,9 @@ const ManageProductsScreen = ({ navigation }) => {
   useEffect(() => {
     dispatch(fetchProducts());
   }, [dispatch]);
-  
+
   const handleAddProduct = () => {
     navigation.navigate('AddProduct');
-  };
-
-  const handleEditProduct = (product) => {
-    navigation.navigate('EditProduct', { product });
   };
 
   const handleDeleteProduct = (productId) => {
@@ -35,29 +31,52 @@ const ManageProductsScreen = ({ navigation }) => {
       'Are you sure you want to delete this product?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteProduct(productId)
+          onPress: async () => {
+            try {
+              const result = await dispatch(deleteProduct(productId));
+              if (result.success) {
+                Alert.alert('Success', 'Product deleted successfully');
+              } else {
+                Alert.alert('Error', result.message || 'Failed to delete product');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete product');
+            }
+          }
         }
       ]
     );
+  };
+
+  const handleEditProduct = (product) => {
+    navigation.navigate('EditProduct', { product });
   };
 
   const renderItem = ({ item }) => (
     <View style={styles.productItem}>
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.productDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+        <View style={styles.productDetails}>
+          <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+          <Text style={styles.productCategory}>
+            {item.category?.name || 'No category'}
+          </Text>
+        </View>
       </View>
       <View style={styles.actionButtons}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.editButton}
           onPress={() => handleEditProduct(item)}
         >
           <Ionicons name="create-outline" size={20} color="#38761d" />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => handleDeleteProduct(item._id)}
         >
@@ -70,14 +89,14 @@ const ManageProductsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#38761d" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Products</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addButton}
           onPress={handleAddProduct}
         >
@@ -135,7 +154,7 @@ const styles = StyleSheet.create({
   productItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start', // Changed from 'center' to align top
     backgroundColor: '#FFFFFF',
     padding: 16,
     marginBottom: 12,
@@ -148,6 +167,7 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     flex: 1,
+    marginRight: 12,
   },
   productName: {
     fontSize: 16,
@@ -155,10 +175,29 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 4,
   },
+  productDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  productDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   productPrice: {
     fontSize: 14,
     color: '#38761d',
     fontWeight: '500',
+    marginRight: 8,
+  },
+  productCategory: {
+    fontSize: 12,
+    color: '#6B7280',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   actionButtons: {
     flexDirection: 'row',
