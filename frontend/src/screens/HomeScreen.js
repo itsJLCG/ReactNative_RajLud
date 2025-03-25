@@ -15,8 +15,7 @@ import ProductCard from '../components/ProductCard';
 
 const HomeScreen = () => {
   const dispatch = useDispatch();
-  const products = useSelector(state => state.products.products);
-  const isLoading = products.length === 0;
+  const { products, isLoading, error } = useSelector(state => state.products);
 
   useEffect(() => {
     dispatch(fetchProducts());
@@ -34,6 +33,14 @@ const HomeScreen = () => {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -47,7 +54,7 @@ const HomeScreen = () => {
         renderItem={({ item }) => (
           <ProductCard product={item} onAddToCart={handleAddToCart} />
         )}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => item._id} // Changed from item.id to item._id
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}

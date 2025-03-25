@@ -1,74 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
   ScrollView,
   Alert,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
+import * as ImagePicker from 'expo-image-picker';
 import { signup } from '../actions/authActions';
 
 const SignupScreen = ({ navigation }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    address: '',
+    image: null,
+    imageBase64: null
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  
+  // Add this line to manage loading state locally
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const dispatch = useDispatch();
   const { isLoading, isAuthenticated, error } = useSelector(state => state.auth);
-  
-  // Redirect if authenticated
+
   useEffect(() => {
     if (isAuthenticated) {
       navigation.navigate('Login');
     }
   }, [isAuthenticated, navigation]);
-  
-  const handleSignup = async () => {
-    // Basic validation
-    if (!name || !email || !password) {
-      Alert.alert('Error', 'All fields are required');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-    
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
-    
-    if (!agreeToTerms) {
-      Alert.alert('Error', 'You must agree to the Terms of Service');
-      return;
-    }
-    
-    const result = await dispatch(signup(name, email, password));
-    
-    if (result.success) {
-      Alert.alert(
-        'Success', 
-        'Account created successfully!',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-      );
+
+  const pickImage = async () => {
+    try {
+      const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+      if (cameraPermission.status !== 'granted') {
+        Alert.alert(
+          'Camera Permission Required',
+          'Please allow camera access to take a profile photo'
+        );
+        return;
+      }
+
+      // Use launchImageLibraryAsync instead if you want to pick from gallery
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        // Handle the image data properly
+        setFormData(prev => ({
+          ...prev,
+          image: asset.uri,
+          imageBase64: asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null
+        }));
+      }
+    } catch (error) {
+      console.error('Camera Error:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
     }
   };
-  
+
+  // Update the handleSignup function to include image validation:
+  const handleSignup = async () => {
+    try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        Alert.alert('Error', 'Please enter your full name');
+        return;
+      }
+
+      if (!formData.email.trim()) {
+        Alert.alert('Error', 'Please enter your email address');
+        return;
+      }
+
+      if (!formData.address.trim()) {
+        Alert.alert('Error', 'Please enter your address');
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        Alert.alert('Error', 'Please enter a valid email address');
+        return;
+      }
+
+      // Validate password
+      if (!formData.password || formData.password.length < 6) {
+        Alert.alert('Error', 'Password must be at least 6 characters long');
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        Alert.alert('Error', 'Passwords do not match');
+        return;
+      }
+
+      // Validate terms agreement
+      if (!agreeToTerms) {
+        Alert.alert('Error', 'Please agree to the Terms of Service');
+        return;
+      }
+
+      // Show loading
+      setIsSubmitting(true);
+
+      const signupData = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        address: formData.address.trim(),
+        imageBase64: formData.imageBase64
+      };
+
+      const result = await dispatch(signup(signupData));
+
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          'Account created successfully!',
+          [{
+            text: 'OK',
+            onPress: () => navigation.navigate('Login')
+          }]
+        );
+      } else {
+        Alert.alert('Error', result.message || 'Failed to create account');
+      }
+    } catch (error) {
+      console.error('Signup Error:', error);
+      Alert.alert('Error', 'Failed to create account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
@@ -76,22 +163,22 @@ const SignupScreen = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.navigate('Login')}
           >
             <Ionicons name="arrow-back" size={24} color="#38761d" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerContainer}>
             <Text style={styles.header}>Create Account</Text>
             <Text style={styles.subHeader}>Sign up to start shopping</Text>
           </View>
-          
+
           <View style={styles.formContainer}>
             {error && (
               <View style={styles.errorContainer}>
@@ -99,7 +186,19 @@ const SignupScreen = ({ navigation }) => {
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
-            
+
+            {/* Profile Image Picker */}
+            <TouchableOpacity style={styles.imagePickerContainer} onPress={pickImage}>
+              {formData.image ? (
+                <Image source={{ uri: formData.image }} style={styles.profileImage} />
+              ) : (
+                <View style={styles.imagePickerPlaceholder}>
+                  <Ionicons name="camera" size={40} color="#38761d" />
+                  <Text style={styles.imagePickerText}>Take Profile Photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Full Name</Text>
               <View style={styles.inputWrapper}>
@@ -108,12 +207,12 @@ const SignupScreen = ({ navigation }) => {
                   style={styles.input}
                   placeholder="Enter your full name"
                   placeholderTextColor="#9CA3AF"
-                  value={name}
-                  onChangeText={setName}
+                  value={formData.name}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
                 />
               </View>
             </View>
-            
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email Address</Text>
               <View style={styles.inputWrapper}>
@@ -122,14 +221,30 @@ const SignupScreen = ({ navigation }) => {
                   style={styles.input}
                   placeholder="Enter your email"
                   placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
+                  value={formData.email}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
                   autoCapitalize="none"
                   keyboardType="email-address"
                 />
               </View>
             </View>
-            
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Address</Text>
+              <View style={[styles.inputWrapper, styles.addressInput]}>
+                <Ionicons name="location-outline" size={20} color="#6B7280" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your address"
+                  placeholderTextColor="#9CA3AF"
+                  value={formData.address}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, address: text }))}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.inputWrapper}>
@@ -138,23 +253,23 @@ const SignupScreen = ({ navigation }) => {
                   style={styles.input}
                   placeholder="Create a password"
                   placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
+                  value={formData.password}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.passwordIcon}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Ionicons 
-                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={20} 
-                    color="#6B7280" 
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#6B7280"
                   />
                 </TouchableOpacity>
               </View>
             </View>
-            
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Confirm Password</Text>
               <View style={styles.inputWrapper}>
@@ -163,24 +278,24 @@ const SignupScreen = ({ navigation }) => {
                   style={styles.input}
                   placeholder="Confirm your password"
                   placeholderTextColor="#9CA3AF"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  value={formData.confirmPassword}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, confirmPassword: text }))}
                   secureTextEntry={!showConfirmPassword}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.passwordIcon}
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  <Ionicons 
-                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={20} 
-                    color="#6B7280" 
+                  <Ionicons
+                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#6B7280"
                   />
                 </TouchableOpacity>
               </View>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.termsContainer}
               onPress={() => setAgreeToTerms(!agreeToTerms)}
             >
@@ -191,37 +306,19 @@ const SignupScreen = ({ navigation }) => {
                 I agree to the <Text style={styles.termsLink}>Terms of Service</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.signupButton, isLoading && styles.signupButtonDisabled]} 
+
+            <TouchableOpacity
+              style={[styles.signupButton, (isSubmitting || isLoading) && styles.signupButtonDisabled]}
               onPress={handleSignup}
-              disabled={isLoading}
+              disabled={isSubmitting || isLoading}
             >
-              {isLoading ? (
+              {(isSubmitting || isLoading) ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={styles.signupButtonText}>Create Account</Text>
               )}
             </TouchableOpacity>
-            
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
-            
-            <View style={styles.socialButtons}>
-              <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
-                <Ionicons name="logo-google" size={20} color="#38761d" />
-                <Text style={styles.socialButtonText}>Google</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={[styles.socialButton, styles.appleButton]}>
-                <Ionicons name="logo-apple" size={20} color="#38761d" />
-                <Text style={styles.socialButtonText}>Apple</Text>
-              </TouchableOpacity>
-            </View>
-            
+
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
@@ -237,6 +334,37 @@ const SignupScreen = ({ navigation }) => {
 
 
 const styles = StyleSheet.create({
+  imagePickerContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  imagePickerPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#38761d',
+    borderStyle: 'dashed',
+  },
+  imagePickerText: {
+    marginTop: 8,
+    color: '#38761d',
+    fontSize: 14,
+  },
+  addressInput: {
+    minHeight: 100,
+    alignItems: 'flex-start',
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Image, 
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -22,33 +22,55 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const dispatch = useDispatch();
   const { isLoading, isAuthenticated, error } = useSelector(state => state.auth);
-  
+
   useEffect(() => {
     if (isAuthenticated) {
       navigation.replace('MainApp');
     }
   }, [isAuthenticated, navigation]);
-  
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
-      return;
+
+  const validateForm = () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return false;
     }
-    
-    const result = await dispatch(login(email, password));
-    
-    if (!result.success) {
-      Alert.alert('Login Failed', result.message);
+    if (!password) {
+      Alert.alert('Error', 'Please enter your password');
+      return false;
+    }
+    return true;
+  };
+
+  const handleLogin = async () => {
+    if (validateForm()) {
+      try {
+        const result = await dispatch(login(email, password));
+        
+        if (result.success) {
+          // Reset navigation stack and redirect based on role
+          navigation.reset({
+            index: 0,
+            routes: [{ 
+              name: result.isAdmin ? 'AdminApp' : 'MainApp' 
+            }]
+          });
+        } else {
+          Alert.alert('Login Failed', result.message || 'Invalid credentials');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        Alert.alert('Error', 'Failed to login. Please try again.');
+      }
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
@@ -64,17 +86,17 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.logoText}>R&L Edge Wear</Text>
             <Text style={styles.logoTagline}>Shop smarter, not harder</Text>
           </View>
-          
+
           <View style={styles.formContainer}>
             <Text style={styles.title}>Welcome Back</Text>
-            
+
             {error && (
               <View style={styles.errorContainer}>
                 <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
-            
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <View style={styles.inputWrapper}>
@@ -90,7 +112,7 @@ const LoginScreen = ({ navigation }) => {
                 />
               </View>
             </View>
-            
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.inputWrapper}>
@@ -103,25 +125,25 @@ const LoginScreen = ({ navigation }) => {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.passwordIcon}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Ionicons 
-                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={20} 
-                    color="#6B7280" 
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#6B7280"
                   />
                 </TouchableOpacity>
               </View>
             </View>
-            
+
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]} 
+
+            <TouchableOpacity
+              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
               onPress={handleLogin}
               disabled={isLoading}
             >
@@ -131,13 +153,13 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.loginButtonText}>Sign In</Text>
               )}
             </TouchableOpacity>
-            
+
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>OR</Text>
               <View style={styles.dividerLine} />
             </View>
-            
+
             <View style={styles.signupContainer}>
               <Text style={styles.signupText}>Don't have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Signup')}>

@@ -16,11 +16,19 @@ import MyOrdersScreen from './src/screens/MyOrdersScreen';
 import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
 import ReviewsScreen from './src/screens/ReviewsScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
+import AdminScreen from './src/screens/Admin/AdminScreen';
+import ManageProductsScreen from './src/screens/Admin/ManageProductsScreen';
+import AddProductScreen from './src/screens/Admin/AddProductScreen';
+import ManageCategoriesScreen from './src/screens/Admin/ManageCategoriesScreen';
+import AddCategoryScreen from './src/screens/Admin/AddCategoryScreen';
+import EditCategoryScreen from './src/screens/Admin/EditCategoryScreen';
+import EditProductScreen from './src/screens/Admin/EditProductScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const ProfileStack = createStackNavigator();
+const AdminStack = createStackNavigator();
 
 // Profile stack for nested navigation from profile tab
 const ProfileStackScreen = () => {
@@ -32,6 +40,20 @@ const ProfileStackScreen = () => {
       <ProfileStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <ProfileStack.Screen name="Reviews" component={ReviewsScreen} />
     </ProfileStack.Navigator>
+  );
+};
+
+const AdminStackScreen = () => {
+  return (
+    <AdminStack.Navigator screenOptions={{ headerShown: false }}>
+      <AdminStack.Screen name="AdminDashboard" component={AdminScreen} />
+      <AdminStack.Screen name="ManageProducts" component={ManageProductsScreen} />
+      <AdminStack.Screen name="AddProduct" component={AddProductScreen} />
+      <AdminStack.Screen name="ManageCategories" component={ManageCategoriesScreen} />
+      <AdminStack.Screen name="AddCategory" component={AddCategoryScreen} />
+      <AdminStack.Screen name="EditCategory" component={EditCategoryScreen} />
+      <AdminStack.Screen name="EditProduct" component={EditProductScreen} /> 
+    </AdminStack.Navigator>
   );
 };
 
@@ -61,16 +83,16 @@ const MainTabs = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen 
-        name="HomeTab" 
-        component={HomeStack} 
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeStack}
         options={{
           title: "Home"
         }}
       />
-      <Tab.Screen 
-        name="ProfileTab" 
-        component={ProfileStackScreen} 
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileStackScreen}
         options={{
           title: "Profile"
         }}
@@ -98,13 +120,13 @@ const HomeStack = () => {
         headerTitleAlign: 'center',
       }}
     >
-      <HomeStackNav.Screen 
-        name="Home" 
+      <HomeStackNav.Screen
+        name="Home"
         component={HomeScreen}
         options={({ navigation }) => ({
           title: "R&L Edge Wear",
           headerRight: () => (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => navigation.navigate('Cart')}
               style={styles.headerButton}
             >
@@ -113,23 +135,23 @@ const HomeStack = () => {
           ),
         })}
       />
-      <HomeStackNav.Screen 
-        name="Cart" 
-        component={CartScreen} 
+      <HomeStackNav.Screen
+        name="Cart"
+        component={CartScreen}
         options={{
           title: "Your Cart"
         }}
       />
-      <HomeStackNav.Screen 
-        name="SingleProduct" 
-        component={SingleProductScreen} 
+      <HomeStackNav.Screen
+        name="SingleProduct"
+        component={SingleProductScreen}
         options={({ route }) => ({
           title: "Product Details"
         })}
       />
-      <HomeStackNav.Screen 
-        name="Checkout" 
-        component={CheckoutScreen} 
+      <HomeStackNav.Screen
+        name="Checkout"
+        component={CheckoutScreen}
         options={{
           title: "Checkout"
         }}
@@ -143,24 +165,16 @@ const App = () => {
   return (
     <Provider store={store}>
       <NavigationContainer>
-        <Stack.Navigator 
+        <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
             headerShown: false
           }}
         >
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen}
-          />
-          <Stack.Screen 
-            name="Signup" 
-            component={SignupScreen}
-          />
-          <Stack.Screen 
-            name="MainApp" 
-            component={MainTabs}
-          />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen name="MainApp" component={MainTabs} />
+          <Stack.Screen name="AdminApp" component={AdminStackScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>

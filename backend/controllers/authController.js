@@ -13,7 +13,7 @@ const generateToken = (id) => {
 // @access  Public
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, address, image } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -24,11 +24,14 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user with default role
     const user = await User.create({
       name,
       email,
-      password
+      password,
+      address,
+      image,
+      role: 'user' // Default role
     });
 
     if (user) {
@@ -38,6 +41,9 @@ exports.signup = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
+          address: user.address,
+          image: user.image,
+          role: user.role,
           token: generateToken(user._id)
         }
       });
@@ -57,7 +63,6 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
@@ -66,7 +71,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if password matches
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -75,16 +79,20 @@ exports.login = async (req, res) => {
       });
     }
 
+    const token = generateToken(user._id);
+
     res.status(200).json({
       success: true,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        token: generateToken(user._id)
+        role: user.role,
+        token // Include token in user object
       }
     });
   } catch (error) {
+    console.error('Login Error:', error);
     res.status(400).json({
       success: false,
       error: error.message

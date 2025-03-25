@@ -53,41 +53,66 @@ export const logout = () => ({
 });
 
 export const login = (email, password) => async (dispatch) => {
-  dispatch(loginRequest());
-
   try {
+    dispatch({ type: LOGIN_REQUEST });
+
     const response = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ email, password })
     });
 
     const data = await response.json();
+    console.log('Login response:', data); // Debug log
 
     if (data.success) {
-      dispatch(loginSuccess(data.user));
-      return { success: true };
+      dispatch({
+        type: LOGIN_SUCCESS,
+        payload: {
+          user: data.user,
+          token: data.user.token // Make sure this matches your backend response
+        }
+      });
+      return { 
+        success: true, 
+        isAdmin: data.user.role === 'admin' 
+      };
     } else {
-      dispatch(loginFailure(data.error));
-      return { success: false, message: data.error };
+      throw new Error(data.error || 'Login failed');
     }
   } catch (error) {
     console.error('Login Error:', error);
-    dispatch(loginFailure('Network error. Please try again.'));
-    return { success: false, message: 'Network error. Please try again.' };
+    dispatch({
+      type: LOGIN_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
   }
 };
 
 // Async thunk for signup
-export const signup = (name, email, password) => async (dispatch) => {
+export const signup = (signupData) => async (dispatch) => {
   dispatch(signupRequest());
-  console.log('Using API URL:', BASE_URL); // Debug log
   
   try {
+    // Format the data properly
+    const userData = {
+      name: signupData.name,
+      email: signupData.email,
+      password: signupData.password,
+      address: signupData.address,
+      // Convert base64 image if exists
+      image: signupData.imageBase64 ? signupData.imageBase64 : null
+    };
+
     const response = await fetch(`${BASE_URL}/api/auth/signup`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(userData)
     });
 
     const data = await response.json();
@@ -100,8 +125,9 @@ export const signup = (name, email, password) => async (dispatch) => {
       return { success: false, message: data.error };
     }
   } catch (error) {
-    dispatch(signupFailure(error.message || 'Something went wrong'));
-    return { success: false, message: error.message || 'Something went wrong' };
+    console.error('Signup Error:', error);
+    dispatch(signupFailure(error.message));
+    return { success: false, message: error.message };
   }
 };
 

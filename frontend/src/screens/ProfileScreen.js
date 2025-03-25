@@ -6,7 +6,9 @@ import {
   SafeAreaView,
   Image,
   TouchableOpacity,
-  ScrollView
+  ScrollView,
+  Alert,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,43 +18,103 @@ const ProfileScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
 
-  // Default profile image
+  // Default profile image with user's initials
   const defaultImage = 'https://ui-avatars.com/api/?name=' + 
     encodeURIComponent(user?.name || 'User') + 
-    '&background=38761d&color=fff';
+    '&background=38761d&color=fff&size=200';
+
+  const statsItems = [
+    { 
+      icon: 'cart', 
+      value: user?.orders?.length || 0,
+      label: 'Orders'
+    },
+    { 
+      icon: 'star', 
+      value: user?.reviews?.length || 0,
+      label: 'Reviews'
+    },
+    { 
+      icon: 'heart', 
+      value: user?.wishlist?.length || 0,
+      label: 'Wishlist'
+    },
+  ];
 
   const menuItems = [
     { 
       icon: 'cart-outline', 
       title: 'My Orders', 
-      badge: 5,
+      badge: user?.orders?.length || 0,
       onPress: () => navigation.navigate('MyOrders')
     },
     { 
       icon: 'star-outline', 
       title: 'My Reviews', 
-      badge: 3,
+      badge: user?.reviews?.length || 0,
       onPress: () => navigation.navigate('Reviews')
     },
-    { icon: 'settings-outline', title: 'Account Settings' },
-    { icon: 'help-circle-outline', title: 'Help & Support' },
+    { 
+      icon: 'heart-outline', 
+      title: 'My Wishlist',
+      badge: user?.wishlist?.length || 0,
+      onPress: () => navigation.navigate('Wishlist')
+    },
+    { 
+      icon: 'location-outline', 
+      title: 'Delivery Address',
+      onPress: () => navigation.navigate('Addresses')
+    },
+    { 
+      icon: 'settings-outline', 
+      title: 'Account Settings',
+      onPress: () => navigation.navigate('Settings')
+    },
+    { 
+      icon: 'help-circle-outline', 
+      title: 'Help & Support',
+      onPress: () => navigation.navigate('Support')
+    },
   ];
 
   const handleLogout = () => {
-    dispatch({ type: LOGOUT });
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            dispatch({ type: LOGOUT });
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          }
+        }
+      ]
+    );
   };
 
   const handleEditProfile = () => {
     navigation.navigate('EditProfile', { user });
   };
 
+  const handleMenuPress = (item) => {
+    if (item.onPress) {
+      item.onPress();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+      <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Profile</Text>
         </View>
@@ -65,6 +127,25 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{user?.name || 'User'}</Text>
             <Text style={styles.profileEmail}>{user?.email || 'No email'}</Text>
+            <View style={styles.profileMetaContainer}>
+              {user?.role && (
+                <View style={styles.roleContainer}>
+                  <Ionicons 
+                    name={user.role === 'admin' ? 'shield-checkmark' : 'person'} 
+                    size={14} 
+                    color="#38761d" 
+                  />
+                  <Text style={styles.roleText}>
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </Text>
+                </View>
+              )}
+              {user?.memberSince && (
+                <Text style={styles.memberSince}>
+                  Member since {new Date(user.memberSince).getFullYear()}
+                </Text>
+              )}
+            </View>
           </View>
           <TouchableOpacity 
             style={styles.editButton}
@@ -73,20 +154,35 @@ const ProfileScreen = ({ navigation }) => {
             <Ionicons name="create-outline" size={20} color="#38761d" />
           </TouchableOpacity>
         </View>
+
+        <View style={styles.statsContainer}>
+          {statsItems.map((item, index) => (
+            <View key={index} style={styles.statsItem}>
+              <View style={styles.statsIconContainer}>
+                <Ionicons name={item.icon} size={22} color="#38761d" />
+              </View>
+              <Text style={styles.statsValue}>{item.value}</Text>
+              <Text style={styles.statsLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
         
         <View style={styles.menuContainer}>
           {menuItems.map((item, index) => (
             <TouchableOpacity 
               key={index} 
-              style={styles.menuItem}
-              onPress={item.onPress}
+              style={[
+                styles.menuItem,
+                index === menuItems.length - 1 && styles.menuItemLast
+              ]}
+              onPress={() => handleMenuPress(item)}
             >
               <View style={styles.menuIconContainer}>
                 <Ionicons name={item.icon} size={22} color="#38761d" />
               </View>
               <Text style={styles.menuText}>{item.title}</Text>
               <View style={styles.menuRight}>
-                {item.badge && (
+                {item.badge > 0 && (
                   <View style={styles.badgeContainer}>
                     <Text style={styles.badgeText}>{item.badge}</Text>
                   </View>
@@ -97,10 +193,15 @@ const ProfileScreen = ({ navigation }) => {
           ))}
         </View>
         
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={handleLogout}
+        >
           <Ionicons name="log-out-outline" size={22} color="#EF4444" />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
+
+        <Text style={styles.versionText}>Version 1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -237,6 +338,73 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     marginLeft: 8,
   },
+  roleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  roleText: {
+    fontSize: 12,
+    color: '#38761d',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
+  },
+  versionText: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 12,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  profileMetaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  memberSince: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  statsItem: {
+    alignItems: 'center',
+  },
+  statsIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statsValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  statsLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  }
 });
 
 export default ProfileScreen;
