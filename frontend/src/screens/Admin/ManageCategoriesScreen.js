@@ -1,22 +1,24 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
-  FlatList,
   TouchableOpacity,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
+import { Text } from 'react-native-paper';
+import { Table, Row, Rows } from 'react-native-table-component';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCategories } from '../../actions/categoryActions';
-import { deleteCategory } from '../../actions/categoryActions';
+import { fetchCategories, deleteCategory } from '../../actions/categoryActions';
 
 const ManageCategoriesScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { categories, error, isLoading } = useSelector(state => state.categories);
+  const [tableHead] = useState(['Name', 'Description', 'Actions']);
+  const [widthArr] = useState([140, 200, 100]);
 
   useEffect(() => {
     dispatch(fetchCategories());
@@ -52,28 +54,28 @@ const ManageCategoriesScreen = ({ navigation }) => {
     navigation.navigate('EditCategory', { category });
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.categoryItem}>
-      <View style={styles.categoryInfo}>
-        <Text style={styles.categoryName}>{item.name}</Text>
-        <Text style={styles.categoryDescription}>{item.description}</Text>
-      </View>
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => handleEditCategory(item)}
-        >
-          <Ionicons name="create-outline" size={20} color="#38761d" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteCategory(item._id)}
-        >
-          <Ionicons name="trash-outline" size={20} color="#EF4444" />
-        </TouchableOpacity>
-      </View>
+  const renderActionButtons = (item) => (
+    <View style={styles.actionButtons}>
+      <TouchableOpacity
+        style={styles.editButton}
+        onPress={() => handleEditCategory(item)}
+      >
+        <Ionicons name="create-outline" size={20} color="#38761d" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDeleteCategory(item._id)}
+      >
+        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+      </TouchableOpacity>
     </View>
   );
+
+  const tableData = categories.map(item => [
+    item.name,
+    item.description,
+    renderActionButtons(item)
+  ]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,13 +102,30 @@ const ManageCategoriesScreen = ({ navigation }) => {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : (
-        <FlatList
-          data={categories}
-          renderItem={renderItem}
-          keyExtractor={item => item._id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={styles.tableContainer}>
+          <ScrollView horizontal={true}>
+            <View>
+              <Table borderStyle={styles.tableBorder}>
+                <Row 
+                  data={tableHead} 
+                  widthArr={widthArr}
+                  style={styles.tableHeader}
+                  textStyle={styles.headerText}
+                />
+                <ScrollView style={styles.dataWrapper}>
+                  <Table borderStyle={styles.tableBorder}>
+                    <Rows 
+                      data={tableData} 
+                      widthArr={widthArr}
+                      style={styles.row}
+                      textStyle={styles.text}
+                    />
+                  </Table>
+                </ScrollView>
+              </Table>
+            </View>
+          </ScrollView>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -137,39 +156,36 @@ const styles = StyleSheet.create({
   addButton: {
     padding: 8,
   },
-  listContent: {
-    padding: 16,
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  tableContainer: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 12,
+    margin: 16,
     borderRadius: 8,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 2,
   },
-  categoryInfo: {
+  tableHeader: {
+    backgroundColor: '#F9FAFB',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  columnName: {
+    flex: 2,
+  },
+  columnDescription: {
+    flex: 3,
+  },
+  columnActions: {
     flex: 1,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  categoryDescription: {
-    fontSize: 14,
-    color: '#6B7280',
+    justifyContent: 'flex-end',
   },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   editButton: {
     padding: 8,
@@ -190,6 +206,59 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
+  },
+  tableContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    margin: 16,
+    borderRadius: 8,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  tableBorder: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tableHeader: {
+    height: 50,
+    backgroundColor: '#F9FAFB',
+  },
+  headerText: {
+    textAlign: 'left',
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#1F2937',
+    paddingLeft: 8,
+  },
+  text: {
+    textAlign: 'left',
+    fontSize: 14,
+    color: '#4B5563',
+    paddingLeft: 8,
+  },
+  row: {
+    height: 60,
+    backgroundColor: '#FFFFFF',
+  },
+  dataWrapper: {
+    marginTop: -1,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingLeft: 8,
+  },
+  editButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  deleteButton: {
+    padding: 8,
   }
 });
 

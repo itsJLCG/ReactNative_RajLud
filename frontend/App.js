@@ -24,6 +24,7 @@ import AddCategoryScreen from './src/screens/Admin/AddCategoryScreen';
 import EditCategoryScreen from './src/screens/Admin/EditCategoryScreen';
 import EditProductScreen from './src/screens/Admin/EditProductScreen';
 import { Ionicons } from '@expo/vector-icons';
+import { Provider as PaperProvider } from 'react-native-paper';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -164,6 +165,7 @@ const HomeStack = () => {
 const App = () => {
   return (
     <Provider store={store}>
+      <PaperProvider>
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName="Login"
@@ -177,6 +179,7 @@ const App = () => {
           <Stack.Screen name="AdminApp" component={AdminStackScreen} />
         </Stack.Navigator>
       </NavigationContainer>
+      </PaperProvider>
     </Provider>
   );
 };

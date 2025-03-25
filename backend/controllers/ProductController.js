@@ -5,13 +5,13 @@ const Product = require('../models/Product');
 // @access  Private/Admin
 exports.createProduct = async (req, res) => {
   try {
-    const { name, price, description, category } = req.body;
-
-    // Validate required fields
-    if (!name || !price || !description || !category) {
+    const { name, price, description, category, image } = req.body;
+    
+    // Validate image data
+    if (!image || !image.public_id || !image.url) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide name, price, description and category'
+        error: 'Product image information is required'
       });
     }
 
@@ -19,14 +19,16 @@ exports.createProduct = async (req, res) => {
       name,
       price,
       description,
-      category
+      category,
+      image: {
+        public_id: image.public_id,
+        url: image.url
+      }
     });
-
-    const populatedProduct = await Product.findById(product._id).populate('category');
 
     res.status(201).json({
       success: true,
-      product: populatedProduct
+      product
     });
   } catch (error) {
     console.error('Create Product Error:', error);
@@ -66,7 +68,9 @@ exports.getProducts = async (req, res) => {
 // @access  Private/Admin
 exports.updateProduct = async (req, res) => {
   try {
-    const { name, price, description, category } = req.body;
+    const { name, price, description, category, image } = req.body;
+    console.log('Received update data:', { name, price, description, category, image });
+
     let product = await Product.findById(req.params.id);
     
     if (!product) {
@@ -76,11 +80,32 @@ exports.updateProduct = async (req, res) => {
       });
     }
 
+    // Create update object with existing image as default
+    const updateData = {
+      name,
+      price,
+      description,
+      category,
+      image: product.image // Keep existing image by default
+    };
+
+    // Update image only if new image data is provided
+    if (image && image.public_id && image.url) {
+      updateData.image = {
+        public_id: image.public_id,
+        url: image.url
+      };
+    }
+
+    console.log('Updating product with data:', updateData);
+
     product = await Product.findByIdAndUpdate(
       req.params.id, 
-      { name, price, description, category }, // Added category to update
+      updateData,
       { new: true, runValidators: true }
-    ).populate('category'); // Add populate to return category details
+    ).populate('category');
+
+    console.log('Updated product:', product);
 
     res.status(200).json({
       success: true,
@@ -94,7 +119,6 @@ exports.updateProduct = async (req, res) => {
     });
   }
 };
-
 // @desc    Delete product
 // @route   DELETE /api/products/:id
 // @access  Private/Admin

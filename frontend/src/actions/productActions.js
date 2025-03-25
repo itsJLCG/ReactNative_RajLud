@@ -76,11 +76,10 @@ export const createProduct = (productData) => async (dispatch, getState) => {
       throw new Error('Authentication token not found');
     }
 
-    console.log('Creating product with:', {
-      url: `${API_URL}/api/products`,
-      token,
-      data: productData
-    });
+    // Ensure image data is properly structured
+    if (!productData.image || !productData.image.public_id || !productData.image.url) {
+      throw new Error('Product image information is required');
+    }
 
     const response = await fetch(`${API_URL}/api/products`, {
       method: 'POST',
@@ -88,14 +87,23 @@ export const createProduct = (productData) => async (dispatch, getState) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(productData)
+      body: JSON.stringify({
+        name: productData.name,
+        price: productData.price,
+        description: productData.description,
+        category: productData.category,
+        image: {
+          public_id: productData.image.public_id,
+          url: productData.image.url
+        }
+      })
     });
 
     const data = await response.json();
     console.log('Create product response:', data);
 
-    if (!response.ok) {
-      throw new Error(data.error || `Server error: ${response.status}`);
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to create product');
     }
 
     dispatch({
@@ -125,6 +133,11 @@ export const updateProduct = (productId, productData) => async (dispatch, getSta
       throw new Error('Authentication token not found');
     }
 
+    // Ensure image data is properly structured if it exists
+    if (productData.image && (!productData.image.public_id || !productData.image.url)) {
+      throw new Error('Invalid image data format');
+    }
+
     const response = await fetch(`${API_URL}/api/products/${productId}`, {
       method: 'PUT',
       headers: {
@@ -132,10 +145,17 @@ export const updateProduct = (productId, productData) => async (dispatch, getSta
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(productData)
+      body: JSON.stringify({
+        name: productData.name,
+        price: productData.price,
+        description: productData.description,
+        category: productData.category,
+        image: productData.image
+      })
     });
 
     const data = await response.json();
+    console.log('Update product response:', data);
 
     if (!response.ok) {
       throw new Error(data.error || `Server error: ${response.status}`);

@@ -3,29 +3,36 @@ const mongoose = require('mongoose');
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Please add a product name'],
-    trim: true,
-    maxLength: [100, 'Product name cannot exceed 100 characters']
+    required: true,
+    trim: true
   },
   price: {
     type: Number,
-    required: [true, 'Please add a product price'],
-    min: [0, 'Price cannot be negative']
+    required: true
   },
   description: {
     type: String,
-    required: [true, 'Please add a product description'],
-    trim: true
+    required: true
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: [true, 'Please select a category']
+    required: true
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  image: {
+    public_id: String,
+    url: String
   }
+}, {
+  timestamps: true
+});
+
+// Add pre-save middleware to validate image
+productSchema.pre('save', function(next) {
+  if (!this.image || !this.image.public_id || !this.image.url) {
+    next(new Error('Product image information is required'));
+  }
+  next();
 });
 
 module.exports = mongoose.model('Product', productSchema);

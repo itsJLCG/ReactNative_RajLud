@@ -16,9 +16,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { createProduct } from '../../actions/productActions';
 import { fetchCategories } from '../../actions/categoryActions';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
+import { uploadImageToCloudinary } from '../../utils/imageUpload';
 
 const AddProductScreen = ({ navigation }) => {
   const dispatch = useDispatch();
+  const [image, setImage] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
   const { categories } = useSelector(state => state.categories);
   const [isLoading, setIsLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -34,13 +39,64 @@ const AddProductScreen = ({ navigation }) => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
+  // Request permissions on component mount
+  useEffect(() => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Sorry, we need camera roll permissions to make this work!');
+      }
+    })();
+  }, []);
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error picking image');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Sorry, we need camera permissions to make this work!');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error taking photo');
+    }
+  };
+
   const validateForm = () => {
     let tempErrors = {};
     if (!product.name.trim()) tempErrors.name = 'Product name is required';
     if (!product.price) tempErrors.price = 'Price is required';
+    if (isNaN(parseFloat(product.price))) tempErrors.price = 'Price must be a number';
     if (!product.description.trim()) tempErrors.description = 'Description is required';
     if (!product.category) tempErrors.category = 'Category is required';
-    
+    if (!image) tempErrors.image = 'Product image is required';
+
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
@@ -54,11 +110,42 @@ const AddProductScreen = ({ navigation }) => {
     if (validateForm()) {
       try {
         setIsLoading(true);
-        const result = await dispatch(createProduct({
-          ...product,
-          price: parseFloat(product.price)
-        }));
-
+  
+        // Upload image first
+        if (!image) {
+          Alert.alert('Error', 'Please select an image');
+          setIsLoading(false);
+          return;
+        }
+  
+        console.log('Starting image upload...');
+        const uploadResult = await uploadImageToCloudinary(image);
+        console.log('Upload result:', uploadResult);
+  
+        if (!uploadResult.success) {
+          Alert.alert('Error', uploadResult.message || 'Failed to upload image');
+          setIsLoading(false);
+          return;
+        }
+  
+        // Prepare product data with image information
+        const productData = {
+          name: product.name,
+          price: parseFloat(product.price),
+          description: product.description,
+          category: product.category,
+          image: {
+            public_id: uploadResult.public_id,
+            url: uploadResult.url
+          }
+        };
+  
+        console.log('Sending product data:', productData);
+  
+        // Create product
+        const result = await dispatch(createProduct(productData));
+        console.log('Create product result:', result);
+  
         if (result.success) {
           Alert.alert(
             'Success',
@@ -69,6 +156,7 @@ const AddProductScreen = ({ navigation }) => {
           Alert.alert('Error', result.message || 'Failed to create product');
         }
       } catch (error) {
+        console.error('Submit error:', error);
         Alert.alert('Error', 'Failed to create product');
       } finally {
         setIsLoading(false);
@@ -91,7 +179,7 @@ const AddProductScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -108,7 +196,7 @@ const AddProductScreen = ({ navigation }) => {
             <TextInput
               style={[styles.input, errors.name && styles.inputError]}
               value={product.name}
-              onChangeText={(text) => setProduct({...product, name: text})}
+              onChangeText={(text) => setProduct({ ...product, name: text })}
               placeholder="Enter product name"
               placeholderTextColor="#9CA3AF"
             />
@@ -120,7 +208,7 @@ const AddProductScreen = ({ navigation }) => {
             <TextInput
               style={[styles.input, errors.price && styles.inputError]}
               value={product.price}
-              onChangeText={(text) => setProduct({...product, price: text})}
+              onChangeText={(text) => setProduct({ ...product, price: text })}
               placeholder="Enter price"
               placeholderTextColor="#9CA3AF"
               keyboardType="decimal-pad"
@@ -150,7 +238,7 @@ const AddProductScreen = ({ navigation }) => {
             <TextInput
               style={[styles.input, styles.textArea, errors.description && styles.inputError]}
               value={product.description}
-              onChangeText={(text) => setProduct({...product, description: text})}
+              onChangeText={(text) => setProduct({ ...product, description: text })}
               placeholder="Enter product description"
               placeholderTextColor="#9CA3AF"
               multiline
@@ -158,6 +246,32 @@ const AddProductScreen = ({ navigation }) => {
               textAlignVertical="top"
             />
             {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Product Image</Text>
+            <View style={styles.imageContainer}>
+              {image && (
+                <Image source={{ uri: image }} style={styles.imagePreview} />
+              )}
+              <View style={styles.imageButtons}>
+                <TouchableOpacity
+                  style={[styles.imageButton, errors.image && styles.inputError]}
+                  onPress={pickImage}
+                >
+                  <Ionicons name="images-outline" size={24} color="#38761d" />
+                  <Text style={styles.imageButtonText}>Pick Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.imageButton, errors.image && styles.inputError]}
+                  onPress={takePhoto}
+                >
+                  <Ionicons name="camera-outline" size={24} color="#38761d" />
+                  <Text style={styles.imageButtonText}>Take Photo</Text>
+                </TouchableOpacity>
+              </View>
+              {errors.image && <Text style={styles.errorText}>{errors.image}</Text>}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -190,14 +304,14 @@ const AddProductScreen = ({ navigation }) => {
       </Modal>
 
       <View style={styles.footer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.cancelButton}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={isLoading}
@@ -374,6 +488,36 @@ const styles = StyleSheet.create({
   categoryDescription: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  imagePreview: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  imageButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  imageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    justifyContent: 'center',
+  },
+  imageButtonText: {
+    marginLeft: 8,
+    color: '#38761d',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

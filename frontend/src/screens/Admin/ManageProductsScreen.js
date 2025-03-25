@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
-  FlatList,
   TouchableOpacity,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
+import { Text } from 'react-native-paper';
+import { Table, Row, Rows } from 'react-native-table-component';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts, deleteProduct } from '../../actions/productActions';
@@ -16,6 +17,8 @@ import { fetchProducts, deleteProduct } from '../../actions/productActions';
 const ManageProductsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { products, error, isLoading } = useSelector(state => state.products);
+  const [tableHead] = useState(['Name', 'Description', 'Price', 'Category', 'Actions']);
+  const [widthArr] = useState([140, 200, 100, 120, 100]);
 
   useEffect(() => {
     dispatch(fetchProducts());
@@ -55,36 +58,30 @@ const ManageProductsScreen = ({ navigation }) => {
     navigation.navigate('EditProduct', { product });
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.productItem}>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <View style={styles.productDetails}>
-          <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-          <Text style={styles.productCategory}>
-            {item.category?.name || 'No category'}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => handleEditProduct(item)}
-        >
-          <Ionicons name="create-outline" size={20} color="#38761d" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteProduct(item._id)}
-        >
-          <Ionicons name="trash-outline" size={20} color="#EF4444" />
-        </TouchableOpacity>
-      </View>
+  const renderActionButtons = (item) => (
+    <View style={styles.actionButtons}>
+      <TouchableOpacity
+        style={styles.editButton}
+        onPress={() => handleEditProduct(item)}
+      >
+        <Ionicons name="create-outline" size={20} color="#38761d" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDeleteProduct(item._id)}
+      >
+        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+      </TouchableOpacity>
     </View>
   );
+
+  const tableData = products.map(item => [
+    item.name,
+    item.description,
+    `${item.price.toFixed(2)}`,
+    item.category?.name || 'No category',
+    renderActionButtons(item)
+  ]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,13 +108,30 @@ const ManageProductsScreen = ({ navigation }) => {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : (
-        <FlatList
-          data={products}
-          renderItem={renderItem}
-          keyExtractor={item => item._id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={styles.tableContainer}>
+          <ScrollView horizontal={true}>
+            <View>
+              <Table borderStyle={styles.tableBorder}>
+                <Row 
+                  data={tableHead} 
+                  widthArr={widthArr}
+                  style={styles.tableHeader}
+                  textStyle={styles.headerText}
+                />
+                <ScrollView style={styles.dataWrapper}>
+                  <Table borderStyle={styles.tableBorder}>
+                    <Rows 
+                      data={tableData} 
+                      widthArr={widthArr}
+                      style={styles.row}
+                      textStyle={styles.text}
+                    />
+                  </Table>
+                </ScrollView>
+              </Table>
+            </View>
+          </ScrollView>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -148,60 +162,51 @@ const styles = StyleSheet.create({
   addButton: {
     padding: 8,
   },
-  listContent: {
-    padding: 16,
-  },
-  productItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start', // Changed from 'center' to align top
+  tableContainer: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 12,
+    margin: 16,
     borderRadius: 8,
+    padding: 16,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 2,
   },
-  productInfo: {
-    flex: 1,
-    marginRight: 12,
+  tableBorder: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
+  tableHeader: {
+    height: 50,
+    backgroundColor: '#F9FAFB',
+  },
+  headerText: {
+    textAlign: 'left',
+    fontWeight: 'bold',
+    fontSize: 14,
     color: '#1F2937',
-    marginBottom: 4,
+    paddingLeft: 8,
   },
-  productDescription: {
+  text: {
+    textAlign: 'left',
     fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-    lineHeight: 20,
+    color: '#4B5563',
+    paddingLeft: 8,
   },
-  productDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  row: {
+    height: 60,
+    backgroundColor: '#FFFFFF',
   },
-  productPrice: {
-    fontSize: 14,
-    color: '#38761d',
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  productCategory: {
-    fontSize: 12,
-    color: '#6B7280',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+  dataWrapper: {
+    marginTop: -1,
   },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingLeft: 8,
   },
   editButton: {
     padding: 8,

@@ -17,7 +17,7 @@ const ProductCard = ({ product, onAddToCart }) => {
       activeOpacity={0.7}
     >
       <View style={styles.imageContainer}>
-        <Image source={{ uri: product.image }} style={styles.image} />
+        {/* <Image source={{ uri: product.image }} style={styles.image} /> */}
       </View>
       <View style={styles.detailsContainer}>
         <Text numberOfLines={2} style={styles.title}>{product.title}</Text>

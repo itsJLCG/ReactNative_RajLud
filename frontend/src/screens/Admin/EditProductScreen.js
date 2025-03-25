@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
+import { uploadImageToCloudinary } from '../../utils/imageUpload';
 import {
     View,
     Text,
@@ -19,6 +22,19 @@ import { fetchCategories } from '../../actions/categoryActions';
 
 const EditProductScreen = ({ route, navigation }) => {
     const { product: initialProduct } = route.params;
+
+    // Initialize image states correctly
+    const [imageUri, setImageUri] = useState(null);
+    const [imageData, setImageData] = useState(initialProduct?.image || null);
+
+    // Add useEffect to handle image data updates
+    useEffect(() => {
+        if (initialProduct?.image?.url) {
+            setImageData(initialProduct.image);
+            console.log('Setting initial image:', initialProduct.image);
+        }
+    }, [initialProduct]);
+
     const dispatch = useDispatch();
     const { categories } = useSelector(state => state.categories);
     const [isLoading, setIsLoading] = useState(false);
@@ -60,25 +76,108 @@ const EditProductScreen = ({ route, navigation }) => {
         setShowCategoryModal(false);
     };
 
+    const pickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+            });
+
+            if (!result.canceled && result.assets[0]?.uri) {
+                const uri = result.assets[0].uri;
+                if (typeof uri === 'string') {
+                    setImageUri(uri);
+                    setImageData(null); // Reset image data since we'll upload new image
+                }
+            }
+        } catch (error) {
+            console.error('Image picker error:', error);
+            Alert.alert('Error', 'Failed to pick image');
+        }
+    };
+
+    const takePhoto = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Sorry, we need camera permissions to make this work!');
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+            });
+
+            if (!result.canceled) {
+                setImageUri(result.assets[0].uri);
+                setImageData(null);
+            }
+        } catch (error) {
+            Alert.alert('Error taking photo');
+        }
+    };
     const handleSubmit = async () => {
         if (validateForm()) {
             try {
                 setIsLoading(true);
-                console.log('Submitting update:', {
-                    ...product,
-                    price: parseFloat(product.price)
-                });
-
-                const result = await dispatch(updateProduct(initialProduct._id, {
-                    ...product,
-                    price: parseFloat(product.price)
-                }));
-
+    
+                let finalImageData = imageData;
+    
+                if (imageUri) {
+                    console.log('Uploading new image...');
+                    const uploadResult = await uploadImageToCloudinary(imageUri);
+                    console.log('Upload result:', uploadResult);
+    
+                    if (!uploadResult.success) {
+                        Alert.alert('Error', uploadResult.message || 'Failed to upload image');
+                        setIsLoading(false);
+                        return;
+                    }
+    
+                    finalImageData = {
+                        public_id: uploadResult.public_id,
+                        url: uploadResult.url
+                    };
+                }
+    
+                const updatedProduct = {
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    description: product.description,
+                    category: product.category,
+                    image: finalImageData
+                };
+    
+                console.log('Updating product with data:', updatedProduct);
+    
+                const result = await dispatch(updateProduct(initialProduct._id, updatedProduct));
+    
                 if (result.success) {
+                    // Update local states with the new data
+                    setImageData(finalImageData);
+                    setImageUri(null);
+    
                     Alert.alert(
                         'Success',
                         'Product updated successfully',
-                        [{ text: 'OK', onPress: () => navigation.goBack() }]
+                        [{
+                            text: 'OK',
+                            onPress: () => {
+                                // Force a refresh of the product data
+                                navigation.goBack();
+                                navigation.navigate('EditProduct', {
+                                    product: {
+                                        ...initialProduct,
+                                        ...updatedProduct,
+                                        image: finalImageData
+                                    }
+                                });
+                            }
+                        }]
                     );
                 } else {
                     Alert.alert('Error', result.message || 'Failed to update product');
@@ -91,7 +190,6 @@ const EditProductScreen = ({ route, navigation }) => {
             }
         }
     };
-
     const renderCategoryItem = ({ item }) => (
         <TouchableOpacity
             style={[
@@ -117,6 +215,14 @@ const EditProductScreen = ({ route, navigation }) => {
         cat._id === initialProduct.category?._id
     );
 
+    useEffect(() => {
+        console.log('Image states updated:', {
+            imageUri,
+            imageData: imageData?.url,
+            initialImage: initialProduct?.image?.url
+        });
+    }, [imageUri, imageData, initialProduct]);
+    
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -187,6 +293,52 @@ const EditProductScreen = ({ route, navigation }) => {
                             textAlignVertical="top"
                         />
                         {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+    <Text style={styles.label}>Product Image</Text>
+    <View style={styles.imageContainer}>
+        {(imageUri || imageData?.url) ? (
+            <Image
+                source={{
+                    uri: imageUri || imageData?.url,
+                    // Force image refresh
+                    cache: 'reload',
+                    headers: {
+                        Pragma: 'no-cache'
+                    }
+                }}
+                style={styles.imagePreview}
+                resizeMode="contain"
+                onLoadStart={() => console.log('Image loading started')}
+                onLoad={() => console.log('Image loaded successfully')}
+                onError={(e) => {
+                    console.log('Image loading error:', e.nativeEvent.error);
+                    console.log('Attempted URI:', imageUri || imageData?.url);
+                }}
+            />
+        ) : (
+            <View style={[styles.imagePreview, styles.noImage]}>
+                <Text style={styles.noImageText}>No image selected</Text>
+            </View>
+        )}
+                            <View style={styles.imageButtons}>
+                                <TouchableOpacity
+                                    style={styles.imageButton}
+                                    onPress={pickImage}
+                                >
+                                    <Ionicons name="images-outline" size={24} color="#38761d" />
+                                    <Text style={styles.imageButtonText}>Pick Image</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.imageButton}
+                                    onPress={takePhoto}
+                                >
+                                    <Ionicons name="camera-outline" size={24} color="#38761d" />
+                                    <Text style={styles.imageButtonText}>Take Photo</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </View>
                 </View>
             </ScrollView>
@@ -430,7 +582,49 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '500',
-    }
+    },
+    imageContainer: {
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    imagePreview: {
+        width: 200,
+        height: 200,
+        borderRadius: 8,
+        marginBottom: 16,
+    },
+    imageButtons: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 16,
+    },
+    imageButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        padding: 12,
+        borderRadius: 8,
+        minWidth: 120,
+        justifyContent: 'center',
+    },
+    imageButtonText: {
+        marginLeft: 8,
+        color: '#38761d',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    noImage: {
+        backgroundColor: '#F3F4F6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderStyle: 'dashed',
+    },
+    noImageText: {
+        color: '#6B7280',
+        fontSize: 14,
+    },
 });
 
 export default EditProductScreen;
