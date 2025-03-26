@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  ScrollView
+  ScrollView,
+  Image,
+  Dimensions
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Table, Row, Rows } from 'react-native-table-component';
@@ -17,8 +19,8 @@ import { fetchProducts, deleteProduct } from '../../actions/productActions';
 const ManageProductsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { products, error, isLoading } = useSelector(state => state.products);
-  const [tableHead] = useState(['Name', 'Description', 'Price', 'Category', 'Actions']);
-  const [widthArr] = useState([140, 200, 100, 120, 100]);
+  const [tableHead] = useState(['Name', 'Price', 'Category', 'Image', 'Actions']);
+  const [widthArr] = useState([140, 80, 120, 80, 100]);
 
   useEffect(() => {
     dispatch(fetchProducts());
@@ -75,11 +77,19 @@ const ManageProductsScreen = ({ navigation }) => {
     </View>
   );
 
+  const renderImage = (uri) => (
+    <Image 
+      source={{ uri }} 
+      style={styles.productImage} 
+      resizeMode="cover"
+    />
+  );
+
   const tableData = products.map(item => [
     item.name,
-    item.description,
     `${item.price.toFixed(2)}`,
     item.category?.name || 'No category',
+    renderImage(item.image?.url || 'https://via.placeholder.com/80'),
     renderActionButtons(item)
   ]);
 
@@ -196,7 +206,7 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   row: {
-    height: 60,
+    height: 80, // Increased height to accommodate image
     backgroundColor: '#FFFFFF',
   },
   dataWrapper: {
@@ -229,6 +239,13 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 4,
+    marginLeft: 8,
+    marginVertical: 10,
   }
 });
 
