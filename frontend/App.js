@@ -23,6 +23,7 @@ import ManageCategoriesScreen from './src/screens/Admin/ManageCategoriesScreen';
 import AddCategoryScreen from './src/screens/Admin/AddCategoryScreen';
 import EditCategoryScreen from './src/screens/Admin/EditCategoryScreen';
 import EditProductScreen from './src/screens/Admin/EditProductScreen';
+import ManageUsersScreen from './src/screens/Admin/ManageUserScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { Provider as PaperProvider } from 'react-native-paper';
 
@@ -54,6 +55,7 @@ const AdminStackScreen = () => {
       <AdminStack.Screen name="AddCategory" component={AddCategoryScreen} />
       <AdminStack.Screen name="EditCategory" component={EditCategoryScreen} />
       <AdminStack.Screen name="EditProduct" component={EditProductScreen} /> 
+      <AdminStack.Screen name="ManageUsers" component={ManageUsersScreen} />
     </AdminStack.Navigator>
   );
 };

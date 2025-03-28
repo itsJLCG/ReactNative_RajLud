@@ -97,6 +97,14 @@ export const login = (email, password) => async (dispatch) => {
 export const signup = (signupData) => async (dispatch) => {
   dispatch(signupRequest());
   try {
+    // Changed: Use the image URL from Cloudinary directly
+    const userData = {
+      name: signupData.name,
+      email: signupData.email,
+      password: signupData.password,
+      address: signupData.address,
+      image: signupData.image // Changed: Use the Cloudinary URL directly
+    };
     const response = await fetch(`${BASE_URL}/api/auth/signup`, {
       method: 'POST',
       headers: {
@@ -114,7 +122,9 @@ export const signup = (signupData) => async (dispatch) => {
       console.error('Failed to parse response:', responseText.substring(0, 200));
       throw new Error('Server returned invalid JSON');
     }
-
+    const data = await response.json();
+    console.log('Signup response:', data); // Add debug log
+    
     if (data.success) {
       dispatch(signupSuccess(data.user));
       return { success: true };

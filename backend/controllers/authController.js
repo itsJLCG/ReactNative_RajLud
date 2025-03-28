@@ -14,6 +14,7 @@ const generateToken = (id) => {
 exports.signup = async (req, res) => {
   try {
     const { name, email, password, address, image } = req.body;
+    console.log('Received image data:', image);
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -22,13 +23,16 @@ exports.signup = async (req, res) => {
         error: 'User already exists'
       });
     }
-
+    // Create user with image object structure
     const user = await User.create({
       name,
       email,
       password,
       address,
-      image,
+      image: {
+        public_id: image.public_id,
+        url: image.url
+      },
       role: 'user'
     });
 
@@ -40,7 +44,7 @@ exports.signup = async (req, res) => {
           name: user.name,
           email: user.email,
           address: user.address,
-          image: user.image,
+          image: user.image, // This will now return the object with public_id and url
           role: user.role,
           token: generateToken(user._id)
         }
