@@ -54,7 +54,11 @@ const CheckoutScreen = ({ navigation }) => {
     
     // Create order object with all the order details
     const orderData = {
-      items: cartItems,
+      items: cartItems.map(item => ({
+        product: item.id || item.product,
+        quantity: item.quantity,
+        price: item.price
+      })),
       shippingAddress: selectedAddress,
       paymentMethod: selectedPaymentMethod.type,
       subtotal: subtotal,
@@ -70,7 +74,7 @@ const CheckoutScreen = ({ navigation }) => {
     
     if (result.success) {
       // Clear the cart
-      dispatch(clearCart());
+      await dispatch(clearCart());
       
       // Show success message and navigate to MyOrders screen through the ProfileTab
       Alert.alert(

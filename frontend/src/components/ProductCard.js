@@ -7,9 +7,27 @@ const ProductCard = ({ product, onAddToCart }) => {
   const navigation = useNavigation();
   
   const handleProductPress = () => {
-    navigation.navigate('SingleProduct', { productId: product.id });
+    navigation.navigate('SingleProduct', { productId: product._id });
   };
-  
+
+  // Get image source based on the product image structure
+  const getImageSource = () => {
+    if (!product) return null;
+    
+    // Handle case when image is an object with url property (from Cloudinary)
+    if (product.image && product.image.url) {
+      return { uri: product.image.url };
+    }
+    
+    // Handle case when image is a direct string URL
+    if (typeof product.image === 'string') {
+      return { uri: product.image };
+    }
+    
+    // Fallback to a placeholder image
+    return require('../assets/placeholder.png'); // Make sure this file exists
+  };
+
   return (
     <TouchableOpacity 
       style={styles.card} 
@@ -17,12 +35,16 @@ const ProductCard = ({ product, onAddToCart }) => {
       activeOpacity={0.7}
     >
       <View style={styles.imageContainer}>
-        {/* <Image source={{ uri: product.image }} style={styles.image} /> */}
+        <Image 
+          source={getImageSource()} 
+          style={styles.image}
+          resizeMode="contain"
+        />
       </View>
       <View style={styles.detailsContainer}>
-        <Text numberOfLines={2} style={styles.title}>{product.title}</Text>
+        <Text numberOfLines={2} style={styles.title}>{product.name}</Text>
         <View style={styles.priceRow}>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+          <Text style={styles.price}>${parseFloat(product.price).toFixed(2)}</Text>
           <TouchableOpacity 
             style={styles.addButton} 
             onPress={(e) => {

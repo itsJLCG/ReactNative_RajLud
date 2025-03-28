@@ -11,7 +11,10 @@ import {
   UPDATE_PRODUCT_FAILURE,
   DELETE_PRODUCT_REQUEST,
   DELETE_PRODUCT_SUCCESS,
-  DELETE_PRODUCT_FAILURE
+  DELETE_PRODUCT_FAILURE,
+  FETCH_PRODUCT_DETAILS_REQUEST,
+  FETCH_PRODUCT_DETAILS_SUCCESS,
+  FETCH_PRODUCT_DETAILS_FAILURE
 } from '../constants/actionTypes';
 import { API_URL_EMULATOR, API_URL_DEVICE } from '@env';
 
@@ -213,6 +216,42 @@ export const deleteProduct = (productId) => async (dispatch, getState) => {
     console.error('Delete Product Error:', error);
     dispatch({
       type: DELETE_PRODUCT_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
+  }
+};
+
+export const fetchProductDetails = (productId) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: FETCH_PRODUCT_DETAILS_REQUEST });
+
+    const { auth } = getState();
+    const token = auth?.token;
+
+    const response = await fetch(`${API_URL}/api/products/${productId}`, {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    });
+
+    const data = await response.json();
+    console.log('Fetch product details response:', data);
+
+    if (!response.ok) {
+      throw new Error(data.error || `Server error: ${response.status}`);
+    }
+
+    dispatch({
+      type: FETCH_PRODUCT_DETAILS_SUCCESS,
+      payload: data.product
+    });
+
+    return { success: true, product: data.product };
+  } catch (error) {
+    console.error('Fetch Product Details Error:', error);
+    dispatch({
+      type: FETCH_PRODUCT_DETAILS_FAILURE,
       payload: error.message
     });
     return { success: false, message: error.message };

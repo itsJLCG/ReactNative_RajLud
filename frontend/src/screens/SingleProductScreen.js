@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,145 +6,66 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
-  FlatList,
+  ActivityIndicator,
   SafeAreaView,
-  StatusBar,
-  ActivityIndicator
+  Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProductDetails } from '../actions/productActions';
 import { addToCart } from '../actions/cartActions';
+
+const { width } = Dimensions.get('window');
 
 const SingleProductScreen = ({ route, navigation }) => {
   const { productId } = route.params;
-  const [product, setProduct] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-  const [reviewText, setReviewText] = useState('');
-  const [rating, setRating] = useState(0);
   const dispatch = useDispatch();
+  const [quantity, setQuantity] = useState(1);
 
-  // Sample reviews - in a real app, these would come from an API
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      username: 'Jane Doe',
-      date: '2024-02-15',
-      rating: 5,
-      comment: 'Excellent product! Works exactly as described and arrived quickly.',
-      avatar: 'https://randomuser.me/api/portraits/women/12.jpg'
-    },
-    {
-      id: 2,
-      username: 'John Smith',
-      date: '2024-02-10',
-      rating: 4,
-      comment: 'Very good quality for the price. Would recommend.',
-      avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
-    },
-    {
-      id: 3,
-      username: 'Amanda Garcia',
-      date: '2024-01-28',
-      rating: 3,
-      comment: 'Decent product but took longer than expected to arrive.',
-      avatar: 'https://randomuser.me/api/portraits/women/65.jpg'
-    }
-  ]);
-  
-  // Fetch single product
+  // Use the correct state paths for product details
+  const { isLoading, error, product } = useSelector(state => ({
+    isLoading: state.products.isLoading,
+    error: state.products.error,
+    product: state.products.product
+  }));
+
   useEffect(() => {
-    const fetchProductDetails = async () => {
-      try {
-        const response = await fetch(`https://fakestoreapi.com/products/${productId}`);
-        const data = await response.json();
-        setProduct(data);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to fetch product details:", error);
-        setIsLoading(false);
-      }
-    };
-    
-    fetchProductDetails();
-  }, [productId]);
+    dispatch(fetchProductDetails(productId));
+  }, [dispatch, productId]);
 
-  const handleAddToCart = () => {
-    if (product) {
-      // Add the selected quantity to cart
-      for (let i = 0; i < quantity; i++) {
-        dispatch(addToCart(product));
-      }
-      // Show feedback (you could add a toast notification here)
+  const handleAddToCart = async () => {
+    const result = await dispatch(addToCart({...product, quantity}));
+    if (result.success) {
       navigation.navigate('Cart');
+    } else {
+      Alert.alert('Error', 'Failed to add item to cart');
     }
   };
-  
-  const increaseQuantity = () => {
-    setQuantity(prevQuantity => prevQuantity + 1);
+
+  const handleIncreaseQuantity = () => {
+    setQuantity(prev => prev + 1);
   };
-  
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(prevQuantity => prevQuantity - 1);
-    }
+
+  const handleDecreaseQuantity = () => {
+    setQuantity(prev => (prev > 1 ? prev - 1 : 1));
   };
-  
-  const submitReview = () => {
-    if (rating === 0 || !reviewText.trim()) {
-      // Show error (you could add an alert here)
-      return;
+
+  // Get image source based on the product image structure
+  const getImageSource = () => {
+    if (!product) return null;
+    
+    // Handle case when image is an object with url property (from Cloudinary)
+    if (product.image && product.image.url) {
+      return { uri: product.image.url };
     }
     
-    // Add the new review to the list
-    const newReview = {
-      id: Date.now(),
-      username: 'You', // In a real app, this would be the logged in user
-      date: new Date().toISOString().split('T')[0],
-      rating,
-      comment: reviewText,
-      avatar: 'https://randomuser.me/api/portraits/men/45.jpg'
-    };
+    // Handle case when image is a direct string URL
+    if (typeof product.image === 'string') {
+      return { uri: product.image };
+    }
     
-    setReviews([newReview, ...reviews]);
-    setReviewText('');
-    setRating(0);
-  };
-  
-  const renderStars = (count) => {
-    return (
-      <View style={styles.starContainer}>
-        {[1, 2, 3, 4, 5].map(star => (
-          <Ionicons 
-            key={star}
-            name={star <= count ? "star" : "star-outline"} 
-            size={16} 
-            color="#FFD700" 
-          />
-        ))}
-      </View>
-    );
-  };
-  
-  const renderRatingPicker = () => {
-    return (
-      <View style={styles.ratingPicker}>
-        {[1, 2, 3, 4, 5].map(star => (
-          <TouchableOpacity 
-            key={star} 
-            onPress={() => setRating(star)}
-          >
-            <Ionicons 
-              name={star <= rating ? "star" : "star-outline"} 
-              size={28} 
-              color="#FFD700" 
-              style={styles.ratingPickerStar}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
+    // Fallback to a placeholder image
+    return require('../assets/placeholder.png');
   };
 
   if (isLoading) {
@@ -154,332 +75,207 @@ const SingleProductScreen = ({ route, navigation }) => {
       </View>
     );
   }
-  
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.error}>{error}</Text>
+      </View>
+    );
+  }
+
   if (!product) {
     return (
       <View style={styles.centered}>
-        <Text>Product not found</Text>
+        <Text style={styles.error}>Product not found</Text>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Product Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={styles.image} />
+          <Image 
+            source={getImageSource()}
+            style={styles.productImage}
+            resizeMode="contain"
+          />
         </View>
         
-        {/* Product Info */}
         <View style={styles.infoContainer}>
-          <Text style={styles.title}>{product.title}</Text>
+          <Text style={styles.category}>
+            {product.category ? product.category.name : 'Uncategorized'}
+          </Text>
+          <Text style={styles.title}>{product.name}</Text>
+          <Text style={styles.price}>${parseFloat(product.price).toFixed(2)}</Text>
           
-          <View style={styles.priceRatingContainer}>
-            <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-            <View style={styles.ratingContainer}>
-              {renderStars(product.rating?.rate || 4)}
-              <Text style={styles.ratingText}>{product.rating?.rate || '4.0'} ({product.rating?.count || reviews.length})</Text>
-            </View>
-          </View>
-          
-          {/* Quantity Selector */}
           <View style={styles.quantityContainer}>
             <Text style={styles.quantityLabel}>Quantity:</Text>
-            <View style={styles.quantitySelector}>
+            <View style={styles.quantityControls}>
               <TouchableOpacity 
                 style={styles.quantityButton} 
-                onPress={decreaseQuantity}
-                disabled={quantity <= 1}
+                onPress={handleDecreaseQuantity}
               >
-                <Ionicons name="remove" size={20} color={quantity <= 1 ? "#D1D5DB" : "#38761d"} />
+                <Ionicons name="remove" size={20} color="#38761d" />
               </TouchableOpacity>
               <Text style={styles.quantityText}>{quantity}</Text>
-              <TouchableOpacity style={styles.quantityButton} onPress={increaseQuantity}>
+              <TouchableOpacity 
+                style={styles.quantityButton}
+                onPress={handleIncreaseQuantity}
+              >
                 <Ionicons name="add" size={20} color="#38761d" />
               </TouchableOpacity>
             </View>
           </View>
           
-          {/* Description */}
+          <View style={styles.divider} />
+          
           <View style={styles.descriptionContainer}>
-            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={styles.descriptionTitle}>Description</Text>
             <Text style={styles.description}>{product.description}</Text>
           </View>
-          
-          {/* Add to Cart Button */}
-          <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-            <Ionicons name="cart-outline" size={22} color="#fff" />
-            <Text style={styles.addToCartText}>Add to Cart</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Reviews Section */}
-        <View style={styles.reviewsContainer}>
-          <Text style={styles.reviewsTitle}>Customer Reviews</Text>
-          
-          {/* Write a Review */}
-          <View style={styles.writeReviewContainer}>
-            <Text style={styles.writeReviewTitle}>Write a Review</Text>
-            {renderRatingPicker()}
-            <TextInput
-              style={styles.reviewInput}
-              placeholder="Share your thoughts about this product..."
-              placeholderTextColor="#9CA3AF"
-              multiline
-              numberOfLines={4}
-              value={reviewText}
-              onChangeText={setReviewText}
-            />
-            <TouchableOpacity 
-              style={[
-                styles.submitButton, 
-                (!reviewText.trim() || rating === 0) && styles.disabledButton
-              ]} 
-              onPress={submitReview}
-              disabled={!reviewText.trim() || rating === 0}
-            >
-              <Text style={styles.submitButtonText}>Submit Review</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Reviews List */}
-          <FlatList
-            data={reviews}
-            keyExtractor={item => item.id.toString()}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={styles.reviewItem}>
-                <View style={styles.reviewHeader}>
-                  <Image source={{ uri: item.avatar }} style={styles.reviewerAvatar} />
-                  <View style={styles.reviewerInfo}>
-                    <Text style={styles.reviewerName}>{item.username}</Text>
-                    <Text style={styles.reviewDate}>{item.date}</Text>
-                  </View>
-                  {renderStars(item.rating)}
-                </View>
-                <Text style={styles.reviewComment}>{item.comment}</Text>
-              </View>
-            )}
-          />
         </View>
       </ScrollView>
+      
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={styles.addToCartButton}
+          onPress={handleAddToCart}
+        >
+          <Text style={styles.addToCartText}>Add to Cart</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
 
+// Keep your existing styles...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#fff',
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+  },
+  error: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingTop: 20,
+  },
+  backButton: {
+    padding: 8,
   },
   imageContainer: {
+    width: width,
+    height: width * 0.8,
     backgroundColor: '#F9FAFB',
-    padding: 20,
     alignItems: 'center',
-    height: 280,
+    justifyContent: 'center',
+    padding: 20,
   },
-  image: {
+  productImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'contain',
   },
   infoContainer: {
     padding: 20,
   },
+  category: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  priceRatingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  price: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 10,
+  },
+  price: {
+    fontSize: 22,
+    fontWeight: 'bold',
     color: '#38761d',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  starContainer: {
-    flexDirection: 'row',
-    marginRight: 6,
-  },
-  ratingText: {
-    color: '#6B7280',
-    fontSize: 14,
+    marginBottom: 16,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginTop: 10,
   },
   quantityLabel: {
     fontSize: 16,
     color: '#4B5563',
-    marginRight: 12,
+    marginRight: 16,
   },
-  quantitySelector: {
+  quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
     borderRadius: 8,
-    overflow: 'hidden',
+    padding: 4,
   },
   quantityButton: {
-    padding: 10,
-    alignItems: 'center',
+    backgroundColor: '#E5E7EB',
+    borderRadius: 8,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
-    width: 40,
-    height: 40,
+    alignItems: 'center',
   },
   quantityText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
     paddingHorizontal: 16,
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 20,
   },
   descriptionContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  sectionTitle: {
+  descriptionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 8,
   },
   description: {
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 22,
     color: '#4B5563',
+  },
+  footer: {
+    padding: 16,
+    paddingBottom: 30,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   addToCartButton: {
     backgroundColor: '#38761d',
     borderRadius: 12,
-    flexDirection: 'row',
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    marginBottom: 20,
   },
   addToCartText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  reviewsContainer: {
-    padding: 20,
-    backgroundColor: '#F9FAFB',
-  },
-  reviewsTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 16,
-  },
-  writeReviewContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  writeReviewTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  ratingPicker: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  ratingPickerStar: {
-    marginRight: 8,
-  },
-  reviewInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#1F2937',
-    height: 100,
-    textAlignVertical: 'top',
-    marginBottom: 16,
-  },
-  submitButton: {
-    backgroundColor: '#38761d',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#9CA3AF',
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  reviewItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  reviewerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  reviewerInfo: {
-    flex: 1,
-  },
-  reviewerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  reviewDate: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  reviewComment: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#4B5563',
-  }
 });
 
 export default SingleProductScreen;

@@ -147,3 +147,31 @@ exports.deleteProduct = async (req, res) => {
     });
   }
 };
+
+// @desc    Get single product
+// @route   GET /api/products/:id
+// @access  Public
+exports.getProductById = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('category', 'name');
+    
+    if (!product) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Product not found' 
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      product
+    });
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    });
+  }
+};

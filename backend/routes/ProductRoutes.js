@@ -5,7 +5,8 @@ const {
   createProduct,
   getProducts,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getProductById
 } = require('../controllers/ProductController');
 
 router.route('/')
@@ -13,6 +14,7 @@ router.route('/')
   .post(protect, authorize('admin'), createProduct);
 
 router.route('/:id')
+  .get(getProductById)
   .put(protect, authorize('admin'), updateProduct)
   .delete(protect, authorize('admin'), deleteProduct);
 

@@ -10,11 +10,15 @@ import {
   UPDATE_PRODUCT_FAILURE,
   DELETE_PRODUCT_REQUEST,
   DELETE_PRODUCT_SUCCESS,
-  DELETE_PRODUCT_FAILURE
+  DELETE_PRODUCT_FAILURE,
+  FETCH_PRODUCT_DETAILS_REQUEST,
+  FETCH_PRODUCT_DETAILS_SUCCESS,
+  FETCH_PRODUCT_DETAILS_FAILURE
 } from '../constants/actionTypes';
 
 const initialState = {
   products: [],
+  product: null,
   isLoading: false,
   error: null
 };
@@ -74,7 +78,27 @@ export default function productReducer(state = initialState, action) {
         isLoading: false,
         error: action.payload
       };
-
+    case FETCH_PRODUCT_DETAILS_REQUEST:
+      return {
+          ...state,
+          isLoading: true,
+          error: null
+        };
+      
+    case FETCH_PRODUCT_DETAILS_SUCCESS:
+        return {
+          ...state,
+          isLoading: false,
+          product: action.payload,
+          error: null
+        };
+      
+    case FETCH_PRODUCT_DETAILS_FAILURE:
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload
+      };    
     default:
       return state;
   }

@@ -19,6 +19,8 @@ frontend/node_modules/
 .eslintcache
 
 # dotenv environment variables file
+backend/.env
+frontend/.env
 .env
 .env.test
 

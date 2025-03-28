@@ -16,7 +16,6 @@ exports.signup = async (req, res) => {
     const { name, email, password, address, image } = req.body;
     console.log('Received image data:', image);
 
-    // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({
@@ -24,7 +23,6 @@ exports.signup = async (req, res) => {
         error: 'User already exists'
       });
     }
-
     // Create user with image object structure
     const user = await User.create({
       name,
