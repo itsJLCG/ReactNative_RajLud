@@ -97,14 +97,13 @@ export const signup = (signupData) => async (dispatch) => {
   dispatch(signupRequest());
   
   try {
-    // Format the data properly
+    // Changed: Use the image URL from Cloudinary directly
     const userData = {
       name: signupData.name,
       email: signupData.email,
       password: signupData.password,
       address: signupData.address,
-      // Convert base64 image if exists
-      image: signupData.imageBase64 ? signupData.imageBase64 : null
+      image: signupData.image // Changed: Use the Cloudinary URL directly
     };
 
     const response = await fetch(`${BASE_URL}/api/auth/signup`, {
@@ -116,6 +115,7 @@ export const signup = (signupData) => async (dispatch) => {
     });
 
     const data = await response.json();
+    console.log('Signup response:', data); // Add debug log
 
     if (data.success) {
       dispatch(signupSuccess(data.user));

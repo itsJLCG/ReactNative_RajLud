@@ -27,8 +27,14 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Please add an address']
   },
   image: {
-    type: String,
-    default: null
+    public_id: {
+      type: String,
+      default: null
+    },
+    url: {
+      type: String,
+      default: null
+    }
   },
   role: {
     type: String,

@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
 import { signup } from '../actions/authActions';
+import { uploadImageToCloudinary } from '../utils/imageUpload';
 
 const SignupScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -26,8 +27,7 @@ const SignupScreen = ({ navigation }) => {
     password: '',
     confirmPassword: '',
     address: '',
-    image: null,
-    imageBase64: null
+    image: null // Will store {public_id, url} object
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -44,38 +44,103 @@ const SignupScreen = ({ navigation }) => {
     }
   }, [isAuthenticated, navigation]);
 
+  const handleImageUpload = async (imageUri) => {
+    try {
+      setIsSubmitting(true);
+      const uploadResult = await uploadImageToCloudinary(imageUri);
+      console.log('Cloudinary Upload Result:', uploadResult);
+
+      if (uploadResult.success) {
+        setFormData(prev => ({
+          ...prev,
+          image: {
+            public_id: uploadResult.public_id,
+            url: uploadResult.url
+          }
+        }));
+      } else {
+        Alert.alert('Upload Failed', uploadResult.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Upload Error:', error);
+      Alert.alert('Error', 'Failed to upload image');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const pickImage = async () => {
+    try {
+      // Show action sheet for camera/gallery choice
+      Alert.alert(
+        "Select Photo",
+        "Choose how you want to add a photo",
+        [
+          {
+            text: "Take Photo",
+            onPress: () => launchCamera()
+          },
+          {
+            text: "Choose from Gallery",
+            onPress: () => launchGallery()
+          },
+          {
+            text: "Cancel",
+            style: "cancel"
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Image Picker Error:', error);
+      Alert.alert('Error', 'Failed to handle image. Please try again.');
+    }
+  };
+
+  const launchCamera = async () => {
     try {
       const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
       if (cameraPermission.status !== 'granted') {
-        Alert.alert(
-          'Camera Permission Required',
-          'Please allow camera access to take a profile photo'
-        );
+        Alert.alert('Permission Required', 'Camera access is required');
         return;
       }
 
-      // Use launchImageLibraryAsync instead if you want to pick from gallery
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.5,
-        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        // Handle the image data properly
-        setFormData(prev => ({
-          ...prev,
-          image: asset.uri,
-          imageBase64: asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null
-        }));
+        handleImageUpload(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Camera Error:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const launchGallery = async () => {
+    try {
+      const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (galleryPermission.status !== 'granted') {
+        Alert.alert('Permission Required', 'Gallery access is required');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        handleImageUpload(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Gallery Error:', error);
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -122,7 +187,11 @@ const SignupScreen = ({ navigation }) => {
         return;
       }
 
-      // Show loading
+      if (!formData.image || !formData.image.url) {
+        Alert.alert('Error', 'Please upload a profile image');
+        return;
+      }
+
       setIsSubmitting(true);
 
       const signupData = {
@@ -130,10 +199,14 @@ const SignupScreen = ({ navigation }) => {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         address: formData.address.trim(),
-        imageBase64: formData.imageBase64
+        image: {
+          public_id: formData.image.public_id,
+          url: formData.image.url
+        }
       };
 
       const result = await dispatch(signup(signupData));
+      console.log('Signup result:', result);
 
       if (result.success) {
         Alert.alert(
@@ -154,7 +227,6 @@ const SignupScreen = ({ navigation }) => {
       setIsSubmitting(false);
     }
   };
-
 
   return (
     <SafeAreaView style={styles.container}>
@@ -187,14 +259,21 @@ const SignupScreen = ({ navigation }) => {
               </View>
             )}
 
-            {/* Profile Image Picker */}
-            <TouchableOpacity style={styles.imagePickerContainer} onPress={pickImage}>
+            <TouchableOpacity style={styles.imagePickerContainer} onPress={pickImage} disabled={isSubmitting}>
               {formData.image ? (
-                <Image source={{ uri: formData.image }} style={styles.profileImage} />
+                <Image
+                  source={{ uri: formData.image.url }}
+                  style={styles.profileImage}
+                />
+              ) : isSubmitting ? (
+                <View style={styles.imagePickerPlaceholder}>
+                  <ActivityIndicator size="large" color="#38761d" />
+                  <Text style={styles.imagePickerText}>Uploading...</Text>
+                </View>
               ) : (
                 <View style={styles.imagePickerPlaceholder}>
                   <Ionicons name="camera" size={40} color="#38761d" />
-                  <Text style={styles.imagePickerText}>Take Profile Photo</Text>
+                  <Text style={styles.imagePickerText}>Add Profile Photo</Text>
                 </View>
               )}
             </TouchableOpacity>

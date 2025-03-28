@@ -14,6 +14,7 @@ const generateToken = (id) => {
 exports.signup = async (req, res) => {
   try {
     const { name, email, password, address, image } = req.body;
+    console.log('Received image data:', image);
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -24,14 +25,17 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Create user with default role
+    // Create user with image object structure
     const user = await User.create({
       name,
       email,
       password,
       address,
-      image,
-      role: 'user' // Default role
+      image: {
+        public_id: image.public_id,
+        url: image.url
+      },
+      role: 'user'
     });
 
     if (user) {
@@ -42,13 +46,14 @@ exports.signup = async (req, res) => {
           name: user.name,
           email: user.email,
           address: user.address,
-          image: user.image,
+          image: user.image, // This will now return the object with public_id and url
           role: user.role,
           token: generateToken(user._id)
         }
       });
     }
   } catch (error) {
+    console.error('Signup Error:', error);
     res.status(400).json({
       success: false,
       error: error.message
