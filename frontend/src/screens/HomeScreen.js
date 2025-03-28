@@ -1,17 +1,19 @@
 import React, { useEffect } from 'react';
-import { 
-  View, 
-  FlatList, 
-  StyleSheet, 
-  ActivityIndicator, 
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
   Text,
   StatusBar,
-  SafeAreaView
+  SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '../actions/productActions';
 import { addToCart } from '../actions/cartActions';
 import ProductCard from '../components/ProductCard';
+import { Ionicons } from '@expo/vector-icons'; // Fix the Ionicons import
 
 const HomeScreen = () => {
   const dispatch = useDispatch();
@@ -45,10 +47,12 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Discover Products</Text>
-        <Text style={styles.headerSubtitle}>Browse our latest collection</Text>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Discover Products</Text>
+          <Text style={styles.headerSubtitle}>Browse our latest collection</Text>
+        </View>
       </View>
-      
+
       <FlatList
         data={products}
         renderItem={({ item }) => (
@@ -69,7 +73,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F4F6',
   },
+  menuButton: {
+    padding: 8,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     backgroundColor: '#F3F4F6',
   },
