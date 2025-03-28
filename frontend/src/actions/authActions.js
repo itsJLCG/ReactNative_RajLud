@@ -5,19 +5,27 @@ import {
   SIGNUP_REQUEST,
   SIGNUP_SUCCESS,
   SIGNUP_FAILURE,
-  LOGOUT
+  LOGOUT,
+  FETCH_PROFILE_REQUEST,
+  FETCH_PROFILE_SUCCESS,
+  FETCH_PROFILE_FAILURE,
+  UPDATE_PROFILE_REQUEST,
+  UPDATE_PROFILE_SUCCESS,
+  UPDATE_PROFILE_FAILURE
 } from '../constants/actionTypes';
 import { Platform } from 'react-native';
 import { API_URL_EMULATOR, API_URL_DEVICE } from '@env';
 
+// Configure base URL
 const BASE_URL = __DEV__
   ? Platform.select({
-    android: Platform.isEmulator ? API_URL_EMULATOR : API_URL_DEVICE,
-    default: API_URL_DEVICE
-  })
+      android: Platform.isEmulator ? API_URL_EMULATOR : API_URL_DEVICE,
+      default: API_URL_DEVICE
+    })
   : API_URL_DEVICE;
 
-  console.log('Using API URL:', BASE_URL); // Debug log to verify URL
+// Debug log
+console.log('Using API URL:', BASE_URL);
 
 // Login actions
 export const loginRequest = () => ({
@@ -112,16 +120,7 @@ export const signup = (signupData) => async (dispatch) => {
       },
       body: JSON.stringify(signupData)
     });
-
-    const responseText = await response.text();
     
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('Failed to parse response:', responseText.substring(0, 200));
-      throw new Error('Server returned invalid JSON');
-    }
     const data = await response.json();
     console.log('Signup response:', data); // Add debug log
     
@@ -139,22 +138,24 @@ export const signup = (signupData) => async (dispatch) => {
   }
 };
 
-export const UPDATE_PROFILE_REQUEST = 'UPDATE_PROFILE_REQUEST';
-export const UPDATE_PROFILE_SUCCESS = 'UPDATE_PROFILE_SUCCESS';
-export const UPDATE_PROFILE_FAILURE = 'UPDATE_PROFILE_FAILURE';
-
-export const updateProfile = (userData) => async (dispatch) => {
+export const updateProfile = (userData) => async (dispatch, getState) => {
   dispatch({ type: UPDATE_PROFILE_REQUEST });
 
   try {
+    const formData = {
+      name: userData.name,
+      email: userData.email,
+      address: userData.address,
+      image: userData.image
+    };
+
     const response = await fetch(`${BASE_URL}/api/auth/update-profile`, {
       method: 'PUT',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        // Add your auth token here if required
-        // 'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${getState().auth.token}`
       },
-      body: JSON.stringify(userData)
+      body: JSON.stringify(formData)
     });
 
     const data = await response.json();
@@ -166,15 +167,77 @@ export const updateProfile = (userData) => async (dispatch) => {
       });
       return { success: true };
     } else {
-      dispatch({
-        type: UPDATE_PROFILE_FAILURE,
-        payload: data.error
-      });
-      return { success: false, message: data.error };
+      throw new Error(data.error || 'Update failed');
     }
   } catch (error) {
     dispatch({
       type: UPDATE_PROFILE_FAILURE,
+      payload: error.message
+    });
+    return { success: false, message: error.message };
+  }
+};
+export const fetchUserProfile = () => async (dispatch, getState) => {
+  dispatch({ type: FETCH_PROFILE_REQUEST });
+
+  try {
+    const { token, user } = getState().auth;
+    
+    if (!token) {
+      throw new Error('No auth token found');
+    }
+
+    // Debug log for request
+    console.log('Auth State:', {
+      hasToken: !!token,
+      userId: user?._id,
+      baseUrl: BASE_URL
+    });
+
+    const response = await fetch(`${BASE_URL}/api/auth/profile`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    // Debug log for response
+    console.log('Profile Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Profile Data:', data);
+
+    if (data.success && data.user) {
+      // Ensure we have all required user data
+      const userData = {
+        ...data.user,
+        image: data.user.image || null
+      };
+
+      dispatch({
+        type: FETCH_PROFILE_SUCCESS,
+        payload: userData
+      });
+      return { success: true, user: userData };
+    } else {
+      throw new Error(data.message || 'Failed to fetch profile');
+    }
+  } catch (error) {
+    console.error('Fetch Profile Error:', error);
+    dispatch({
+      type: FETCH_PROFILE_FAILURE,
       payload: error.message
     });
     return { success: false, message: error.message };

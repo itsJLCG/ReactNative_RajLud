@@ -102,3 +102,82 @@ exports.login = async (req, res) => {
     });
   }
 };
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, email, address, image } = req.body;
+
+    const updateData = {
+      name,
+      email,
+      address,
+      ...(image && { image })
+    };
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Update Profile Error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+exports.getProfile = async (req, res) => {
+  try {
+    // Get user from auth middleware
+    const user = await User.findById(req.user.id)
+      .select('-password')
+      .lean(); // Use lean() for better performance
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Debug log
+    console.log('Profile Request:', {
+      userId: user._id,
+      hasImage: !!user.image,
+      imageUrl: user.image?.url
+    });
+
+    res.status(200).json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        address: user.address,
+        image: user.image,
+        role: user.role,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Get Profile Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
+  }
+};
