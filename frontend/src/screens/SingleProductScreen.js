@@ -33,9 +33,13 @@ const SingleProductScreen = ({ route, navigation }) => {
     dispatch(fetchProductDetails(productId));
   }, [dispatch, productId]);
 
-  const handleAddToCart = () => {
-    dispatch(addToCart({...product, quantity}));
-    navigation.navigate('Cart');
+  const handleAddToCart = async () => {
+    const result = await dispatch(addToCart({...product, quantity}));
+    if (result.success) {
+      navigation.navigate('Cart');
+    } else {
+      Alert.alert('Error', 'Failed to add item to cart');
+    }
   };
 
   const handleIncreaseQuantity = () => {
