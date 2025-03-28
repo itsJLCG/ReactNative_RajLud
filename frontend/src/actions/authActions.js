@@ -17,6 +17,8 @@ const BASE_URL = __DEV__
   })
   : API_URL_DEVICE;
 
+  console.log('Using API URL:', BASE_URL); // Debug log to verify URL
+
 // Login actions
 export const loginRequest = () => ({
   type: LOGIN_REQUEST
@@ -65,14 +67,13 @@ export const login = (email, password) => async (dispatch) => {
     });
 
     const data = await response.json();
-    console.log('Login response:', data); // Debug log
 
     if (data.success) {
       dispatch({
         type: LOGIN_SUCCESS,
         payload: {
           user: data.user,
-          token: data.user.token // Make sure this matches your backend response
+          token: data.user.token 
         }
       });
       return { 
@@ -95,27 +96,24 @@ export const login = (email, password) => async (dispatch) => {
 // Async thunk for signup
 export const signup = (signupData) => async (dispatch) => {
   dispatch(signupRequest());
-  
   try {
-    // Format the data properly
-    const userData = {
-      name: signupData.name,
-      email: signupData.email,
-      password: signupData.password,
-      address: signupData.address,
-      // Convert base64 image if exists
-      image: signupData.imageBase64 ? signupData.imageBase64 : null
-    };
-
     const response = await fetch(`${BASE_URL}/api/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(userData)
+      body: JSON.stringify(signupData)
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse response:', responseText.substring(0, 200));
+      throw new Error('Server returned invalid JSON');
+    }
 
     if (data.success) {
       dispatch(signupSuccess(data.user));

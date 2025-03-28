@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -15,6 +16,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../actions/cartActions';
+import { API_URL_EMULATOR, API_URL_DEVICE } from '@env';
+
+const API_URL = __DEV__
+  ? Platform.select({
+    android: Platform.isEmulator ? API_URL_EMULATOR : API_URL_DEVICE,
+    default: API_URL_DEVICE
+  })
+  : API_URL_DEVICE;
 
 const SingleProductScreen = ({ route, navigation }) => {
   const { productId } = route.params;
@@ -57,9 +66,14 @@ const SingleProductScreen = ({ route, navigation }) => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const response = await fetch(`https://fakestoreapi.com/products/${productId}`);
+        const response = await fetch(`${API_URL}/api/products/${productId}`);
         const data = await response.json();
-        setProduct(data);
+        
+        if (data.success) {
+          setProduct(data.product);
+        } else {
+          console.error("Failed to fetch product:", data.error);
+        }
         setIsLoading(false);
       } catch (error) {
         console.error("Failed to fetch product details:", error);
@@ -69,7 +83,6 @@ const SingleProductScreen = ({ route, navigation }) => {
     
     fetchProductDetails();
   }, [productId]);
-
   const handleAddToCart = () => {
     if (product) {
       // Add the selected quantity to cart

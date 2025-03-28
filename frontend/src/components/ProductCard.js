@@ -7,7 +7,7 @@ const ProductCard = ({ product, onAddToCart }) => {
   const navigation = useNavigation();
   
   const handleProductPress = () => {
-    navigation.navigate('SingleProduct', { productId: product.id });
+    navigation.navigate('SingleProduct', { productId: product._id });
   };
   
   return (
@@ -20,7 +20,7 @@ const ProductCard = ({ product, onAddToCart }) => {
         {/* <Image source={{ uri: product.image }} style={styles.image} /> */}
       </View>
       <View style={styles.detailsContainer}>
-        <Text numberOfLines={2} style={styles.title}>{product.title}</Text>
+        <Text numberOfLines={2} style={styles.title}>{product.name}</Text>
         <View style={styles.priceRow}>
           <Text style={styles.price}>${product.price.toFixed(2)}</Text>
           <TouchableOpacity 

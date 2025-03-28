@@ -15,7 +15,6 @@ exports.signup = async (req, res) => {
   try {
     const { name, email, password, address, image } = req.body;
 
-    // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({
@@ -24,14 +23,13 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Create user with default role
     const user = await User.create({
       name,
       email,
       password,
       address,
       image,
-      role: 'user' // Default role
+      role: 'user'
     });
 
     if (user) {
@@ -49,6 +47,7 @@ exports.signup = async (req, res) => {
       });
     }
   } catch (error) {
+    console.error('Signup Error:', error);
     res.status(400).json({
       success: false,
       error: error.message
