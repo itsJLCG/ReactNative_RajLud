@@ -1,14 +1,23 @@
 import { 
-  ADD_TO_CART, 
-  REMOVE_FROM_CART, 
-  CLEAR_CART,
+  ADD_TO_CART_REQUEST, 
+  ADD_TO_CART_SUCCESS, 
+  ADD_TO_CART_FAILURE,
+  REMOVE_FROM_CART_REQUEST,
+  REMOVE_FROM_CART_SUCCESS,
+  REMOVE_FROM_CART_FAILURE,
+  CLEAR_CART_REQUEST,
+  CLEAR_CART_SUCCESS,
+  CLEAR_CART_FAILURE,
   FETCH_CART_REQUEST,
   FETCH_CART_SUCCESS,
   FETCH_CART_FAILURE,
-  CART_UPDATE_REQUEST,
-  CART_UPDATE_SUCCESS,
-  CART_UPDATE_FAIL
-} from '../constants/actionTypes';
+  UPDATE_CART_QUANTITY_REQUEST,
+  UPDATE_CART_QUANTITY_SUCCESS,
+  UPDATE_CART_QUANTITY_FAILURE,
+  REMOVE_MULTIPLE_FROM_CART_REQUEST,
+  REMOVE_MULTIPLE_FROM_CART_SUCCESS,
+  REMOVE_MULTIPLE_FROM_CART_FAILURE
+} from '../constants/cartConstants';
 
 const initialState = {
   items: [],
@@ -18,103 +27,51 @@ const initialState = {
 
 export default function cartReducer(state = initialState, action) {
   switch (action.type) {
+    // Request cases - set loading to true
     case FETCH_CART_REQUEST:
+    case ADD_TO_CART_REQUEST:
+    case REMOVE_FROM_CART_REQUEST:
+    case UPDATE_CART_QUANTITY_REQUEST:
+    case REMOVE_MULTIPLE_FROM_CART_REQUEST:
+    case CLEAR_CART_REQUEST:
       return {
         ...state,
         loading: true,
         error: null
       };
       
-    case FETCH_CART_SUCCESS:
-      // Transform backend cart items to frontend format
-      return {
-        ...state,
-        loading: false,
-        items: action.payload && action.payload.items ? 
-          action.payload.items.map(item => ({
-            _id: item._id, // Cart item ID for removal operations
-            id: item.product._id, // Product ID
-            title: item.product.name,
-            price: item.product.price,
-            image: item.product.image?.url,
-            quantity: item.quantity,
-            product: item.product._id
-          })) : [],
-        error: null
-      };
-      
+    // Failure cases - set error and stop loading
     case FETCH_CART_FAILURE:
+    case ADD_TO_CART_FAILURE:
+    case REMOVE_FROM_CART_FAILURE:
+    case UPDATE_CART_QUANTITY_FAILURE:
+    case REMOVE_MULTIPLE_FROM_CART_FAILURE:
+    case CLEAR_CART_FAILURE:
       return {
         ...state,
         loading: false,
         error: action.payload
       };
       
-    case ADD_TO_CART:
-      // Transform backend cart items after adding to cart
+    // Success cases - handle each specific case
+    case FETCH_CART_SUCCESS:
+    case ADD_TO_CART_SUCCESS:
+    case REMOVE_FROM_CART_SUCCESS:
+    case REMOVE_MULTIPLE_FROM_CART_SUCCESS:
+    case UPDATE_CART_QUANTITY_SUCCESS:
       return {
         ...state,
         loading: false,
-        items: action.payload && action.payload.items ? 
-          action.payload.items.map(item => ({
-            _id: item._id,
-            id: item.product._id,
-            title: item.product.name,
-            price: item.product.price,
-            image: item.product.image?.url,
-            quantity: item.quantity,
-            product: item.product._id
-          })) : [...state.items],
+        items: action.payload,
         error: null
       };
-
-    case REMOVE_FROM_CART:
-      // Transform backend cart items after removing from cart
-      return {
-        ...state,
-        loading: false,
-        items: action.payload && action.payload.items ? 
-          action.payload.items.map(item => ({
-            _id: item._id,
-            id: item.product._id,
-            title: item.product.name,
-            price: item.product.price,
-            image: item.product.image?.url,
-            quantity: item.quantity,
-            product: item.product._id
-          })) : [],
-        error: null
-      };
-
-    case CLEAR_CART:
+      
+    case CLEAR_CART_SUCCESS:
       return {
         ...state,
         loading: false,
         items: [],
         error: null
-      };
-
-    case CART_UPDATE_REQUEST:
-      return {
-        ...state,
-        loading: true,
-        error: null
-      };
-    case CART_UPDATE_SUCCESS:
-      return {
-        ...state,
-        loading: false,
-        items: state.items.map(item => 
-          item._id === action.payload.itemId 
-            ? { ...item, quantity: action.payload.quantity } 
-            : item
-        )
-      };
-    case CART_UPDATE_FAIL:
-      return {
-        ...state,
-        loading: false,
-        error: action.payload
       };
       
     default:

@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { initDatabase } from './src/utils/database';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
@@ -40,6 +41,20 @@ const RootStack = () => {
 };
 
 const App = () => {
+
+  useEffect(() => {
+    const setupDatabase = async () => {
+      try {
+        await initDatabase();
+        console.log('Database initialized successfully');
+      } catch (error) {
+        console.error('Database initialization error:', error);
+      }
+    };
+    
+    setupDatabase();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>

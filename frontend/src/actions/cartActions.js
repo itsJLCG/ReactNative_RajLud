@@ -1,160 +1,166 @@
-import { Platform } from 'react-native';
-import { 
-  ADD_TO_CART, 
-  REMOVE_FROM_CART, 
-  CLEAR_CART, 
+import {
   FETCH_CART_REQUEST,
   FETCH_CART_SUCCESS,
   FETCH_CART_FAILURE,
-  CART_UPDATE_REQUEST,
-  CART_UPDATE_SUCCESS,
-  CART_UPDATE_FAIL
-} from '../constants/actionTypes';
-import { API_URL_EMULATOR, API_URL_DEVICE } from '@env';
+  ADD_TO_CART_REQUEST,
+  ADD_TO_CART_SUCCESS,
+  ADD_TO_CART_FAILURE,
+  REMOVE_FROM_CART_REQUEST,
+  REMOVE_FROM_CART_SUCCESS,
+  REMOVE_FROM_CART_FAILURE,
+  UPDATE_CART_QUANTITY_REQUEST,
+  UPDATE_CART_QUANTITY_SUCCESS,
+  UPDATE_CART_QUANTITY_FAILURE,
+  REMOVE_MULTIPLE_FROM_CART_REQUEST,
+  REMOVE_MULTIPLE_FROM_CART_SUCCESS,
+  REMOVE_MULTIPLE_FROM_CART_FAILURE,
+  CLEAR_CART_REQUEST,
+  CLEAR_CART_SUCCESS,
+  CLEAR_CART_FAILURE
+} from '../constants/cartConstants';
 
-// Configure API URL based on platform and environment
-const API_URL = __DEV__
-  ? Platform.select({
-    android: Platform.isEmulator ? API_URL_EMULATOR : API_URL_DEVICE,
-    default: API_URL_DEVICE
-  })
-  : API_URL_DEVICE;
+import {
+  getCartItems,
+  addCartItem,
+  removeCartItem,
+  updateCartItemQuantityInDb,
+  removeMultipleCartItems,
+  clearCart as clearCartInDb
+} from '../utils/database';
 
-console.log('Using Cart API URL:', API_URL);
-
-// Get cart
+// Fetch all cart items
 export const fetchCart = () => async (dispatch, getState) => {
   try {
     dispatch({ type: FETCH_CART_REQUEST });
     
     const { auth } = getState();
-    const token = auth?.token;
-
-    if (!token) {
-      throw new Error('Authentication token not found');
-    }
+    const userId = auth?.user?._id;
     
-    const response = await fetch(`${API_URL}/api/cart`, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    console.log('Fetch cart response:', data);
-    
-    if (!response.ok) {
-      throw new Error(data.error || `Server error: ${response.status}`);
-    }
+    const items = await getCartItems(userId);
     
     dispatch({
       type: FETCH_CART_SUCCESS,
-      payload: data.data
+      payload: items
     });
     
-    return { success: true };
+    return { success: true, items };
   } catch (error) {
-    console.error('Fetch Cart Error:', error);
     dispatch({
       type: FETCH_CART_FAILURE,
-      payload: error.message
+      payload: error.message || 'Could not fetch cart items'
     });
     return { success: false, error: error.message };
   }
 };
 
-// Add to cart
+// Add item to cart
 export const addToCart = (product, quantity = 1) => async (dispatch, getState) => {
   try {
-    dispatch({ type: FETCH_CART_REQUEST });
+    dispatch({ type: ADD_TO_CART_REQUEST });
     
     const { auth } = getState();
-    const token = auth?.token;
+    const userId = auth?.user?._id;
     
-    if (!token) {
-      throw new Error('Authentication token not found');
-    }
+    // Add to local db
+    await addCartItem(product, quantity, userId);
     
-    const response = await fetch(`${API_URL}/api/cart`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ 
-        productId: product._id || product.id, 
-        quantity: quantity 
-      }),
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    console.log('Add to cart response:', data);
-    
-    if (!response.ok) {
-      throw new Error(data.error || `Server error: ${response.status}`);
-    }
+    // Fetch updated cart to keep Redux store in sync with local db
+    const items = await getCartItems(userId);
     
     dispatch({
-      type: ADD_TO_CART,
-      payload: data.data
+      type: ADD_TO_CART_SUCCESS,
+      payload: items
     });
     
     return { success: true };
   } catch (error) {
-    console.error('Add to Cart Error:', error);
     dispatch({
-      type: FETCH_CART_FAILURE,
-      payload: error.message
+      type: ADD_TO_CART_FAILURE,
+      payload: error.message || 'Could not add item to cart'
     });
     return { success: false, error: error.message };
   }
 };
 
-// Remove from cart
+// Remove item from cart
 export const removeFromCart = (itemId) => async (dispatch, getState) => {
   try {
-    dispatch({ type: FETCH_CART_REQUEST });
+    dispatch({ type: REMOVE_FROM_CART_REQUEST });
     
     const { auth } = getState();
-    const token = auth?.token;
+    const userId = auth?.user?._id;
     
-    if (!token) {
-      throw new Error('Authentication token not found');
-    }
+    await removeCartItem(itemId, userId);
     
-    const response = await fetch(`${API_URL}/api/cart/${itemId}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    console.log('Remove from cart response:', data);
-    
-    if (!response.ok) {
-      throw new Error(data.error || `Server error: ${response.status}`);
-    }
+    // Fetch updated cart
+    const items = await getCartItems(userId);
     
     dispatch({
-      type: REMOVE_FROM_CART,
-      payload: data.data
+      type: REMOVE_FROM_CART_SUCCESS,
+      payload: items
     });
     
     return { success: true };
   } catch (error) {
-    console.error('Remove from Cart Error:', error);
     dispatch({
-      type: FETCH_CART_FAILURE,
-      payload: error.message
+      type: REMOVE_FROM_CART_FAILURE,
+      payload: error.message || 'Could not remove item from cart'
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+// Update cart item quantity
+export const updateCartItemQuantity = (itemId, quantity) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: UPDATE_CART_QUANTITY_REQUEST });
+    
+    const { auth } = getState();
+    const userId = auth?.user?._id;
+    
+    await updateCartItemQuantityInDb(itemId, quantity, userId);
+    
+    // Fetch updated cart
+    const items = await getCartItems(userId);
+    
+    dispatch({
+      type: UPDATE_CART_QUANTITY_SUCCESS,
+      payload: items
+    });
+    
+    return { success: true };
+  } catch (error) {
+    dispatch({
+      type: UPDATE_CART_QUANTITY_FAILURE,
+      payload: error.message || 'Could not update cart quantity'
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+// Remove multiple items from cart
+export const removeMultipleFromCart = (productIds) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: REMOVE_MULTIPLE_FROM_CART_REQUEST });
+    
+    const { auth } = getState();
+    const userId = auth?.user?._id;
+    
+    await removeMultipleCartItems(productIds, userId);
+    
+    // Fetch updated cart
+    const items = await getCartItems(userId);
+    
+    dispatch({
+      type: REMOVE_MULTIPLE_FROM_CART_SUCCESS,
+      payload: items
+    });
+    
+    return { success: true };
+  } catch (error) {
+    dispatch({
+      type: REMOVE_MULTIPLE_FROM_CART_FAILURE,
+      payload: error.message || 'Could not remove items from cart'
     });
     return { success: false, error: error.message };
   }
@@ -163,103 +169,23 @@ export const removeFromCart = (itemId) => async (dispatch, getState) => {
 // Clear cart
 export const clearCart = () => async (dispatch, getState) => {
   try {
-    dispatch({ type: FETCH_CART_REQUEST });
+    dispatch({ type: CLEAR_CART_REQUEST });
     
     const { auth } = getState();
-    const token = auth?.token;
+    const userId = auth?.user?._id;
     
-    if (!token) {
-      throw new Error('Authentication token not found');
-    }
+    await clearCartInDb(userId);
     
-    const response = await fetch(`${API_URL}/api/cart`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      credentials: 'include'
-    });
-    
-    const data = await response.json();
-    console.log('Clear cart response:', data);
-    
-    if (!response.ok) {
-      throw new Error(data.error || `Server error: ${response.status}`);
-    }
-    
-    dispatch({ type: CLEAR_CART });
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Clear Cart Error:', error);
     dispatch({
-      type: FETCH_CART_FAILURE,
-      payload: error.message
+      type: CLEAR_CART_SUCCESS,
+      payload: []
     });
-    return { success: false, error: error.message };
-  }
-};
-
-export const updateCartItemQuantity = (itemId, quantity) => async (dispatch, getState) => {
-  try {
-    dispatch({ type: CART_UPDATE_REQUEST });
-    
-    const token = getState().auth.token;
-    if (!token) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
-    console.log(`Updating item ${itemId} quantity to ${quantity}`);
-
-    const response = await fetch(`${API_URL}/api/cart/${itemId}`, {
-      method: 'PATCH',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ quantity }),
-      credentials: 'include'
-    });
-    
-    // Handle non-JSON responses
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text();
-      console.error('Received non-JSON response:', text);
-      throw new Error('Invalid server response format');
-    }
-
-    const data = await response.json();
-    console.log('Update cart item response:', data);
-
-    if (!response.ok) {
-      console.error('Error updating cart:', data.error || response.statusText);
-      dispatch({ type: CART_UPDATE_FAIL, payload: data.error || 'Failed to update cart' });
-      return { success: false, error: data.error || 'Failed to update cart' };
-    }
-
-    // Update the cart in redux
-    if (data.data) {
-      dispatch({
-        type: FETCH_CART_SUCCESS,
-        payload: data.data
-      });
-    } else {
-      dispatch({ 
-        type: CART_UPDATE_SUCCESS, 
-        payload: { itemId, quantity } 
-      });
-    }
     
     return { success: true };
   } catch (error) {
-    console.error('Update cart item error:', error);
-    dispatch({ 
-      type: CART_UPDATE_FAIL, 
-      payload: error.message 
+    dispatch({
+      type: CLEAR_CART_FAILURE,
+      payload: error.message || 'Could not clear cart'
     });
     return { success: false, error: error.message };
   }

@@ -1,13 +1,3 @@
-// Cart Actions
-export const ADD_TO_CART = 'ADD_TO_CART';
-export const REMOVE_FROM_CART = 'REMOVE_FROM_CART';
-export const FETCH_CART_REQUEST = 'FETCH_CART_REQUEST';
-export const FETCH_CART_SUCCESS = 'FETCH_CART_SUCCESS';
-export const FETCH_CART_FAILURE = 'FETCH_CART_FAILURE';
-export const CART_UPDATE_REQUEST = 'CART_UPDATE_REQUEST';
-export const CART_UPDATE_SUCCESS = 'CART_UPDATE_SUCCESS';
-export const CART_UPDATE_FAIL = 'CART_UPDATE_FAIL';
-
 // Authentication Actions
 export const LOGIN_REQUEST = 'LOGIN_REQUEST';
 export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';

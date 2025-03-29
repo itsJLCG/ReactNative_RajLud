@@ -34,7 +34,9 @@ const SingleProductScreen = ({ route, navigation }) => {
   }, [dispatch, productId]);
 
   const handleAddToCart = async () => {
+    console.log("Adding to cart:", product, quantity);
     const result = await dispatch(addToCart(product, quantity));
+    console.log("Add to cart result:", result);
     if (result.success) {
       navigation.navigate('Cart');
     } else {
