@@ -4,7 +4,10 @@ import {
   CLEAR_CART,
   FETCH_CART_REQUEST,
   FETCH_CART_SUCCESS,
-  FETCH_CART_FAILURE
+  FETCH_CART_FAILURE,
+  CART_UPDATE_REQUEST,
+  CART_UPDATE_SUCCESS,
+  CART_UPDATE_FAIL
 } from '../constants/actionTypes';
 
 const initialState = {
@@ -91,6 +94,29 @@ export default function cartReducer(state = initialState, action) {
         error: null
       };
 
+    case CART_UPDATE_REQUEST:
+      return {
+        ...state,
+        loading: true,
+        error: null
+      };
+    case CART_UPDATE_SUCCESS:
+      return {
+        ...state,
+        loading: false,
+        items: state.items.map(item => 
+          item._id === action.payload.itemId 
+            ? { ...item, quantity: action.payload.quantity } 
+            : item
+        )
+      };
+    case CART_UPDATE_FAIL:
+      return {
+        ...state,
+        loading: false,
+        error: action.payload
+      };
+      
     default:
       return state;
   }

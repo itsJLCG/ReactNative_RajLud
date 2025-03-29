@@ -5,7 +5,10 @@ import {
   CLEAR_CART, 
   FETCH_CART_REQUEST,
   FETCH_CART_SUCCESS,
-  FETCH_CART_FAILURE
+  FETCH_CART_FAILURE,
+  CART_UPDATE_REQUEST,
+  CART_UPDATE_SUCCESS,
+  CART_UPDATE_FAIL
 } from '../constants/actionTypes';
 import { API_URL_EMULATOR, API_URL_DEVICE } from '@env';
 
@@ -194,6 +197,69 @@ export const clearCart = () => async (dispatch, getState) => {
     dispatch({
       type: FETCH_CART_FAILURE,
       payload: error.message
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateCartItemQuantity = (itemId, quantity) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: CART_UPDATE_REQUEST });
+    
+    const token = getState().auth.token;
+    if (!token) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    console.log(`Updating item ${itemId} quantity to ${quantity}`);
+
+    const response = await fetch(`${API_URL}/api/cart/${itemId}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ quantity }),
+      credentials: 'include'
+    });
+    
+    // Handle non-JSON responses
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Received non-JSON response:', text);
+      throw new Error('Invalid server response format');
+    }
+
+    const data = await response.json();
+    console.log('Update cart item response:', data);
+
+    if (!response.ok) {
+      console.error('Error updating cart:', data.error || response.statusText);
+      dispatch({ type: CART_UPDATE_FAIL, payload: data.error || 'Failed to update cart' });
+      return { success: false, error: data.error || 'Failed to update cart' };
+    }
+
+    // Update the cart in redux
+    if (data.data) {
+      dispatch({
+        type: FETCH_CART_SUCCESS,
+        payload: data.data
+      });
+    } else {
+      dispatch({ 
+        type: CART_UPDATE_SUCCESS, 
+        payload: { itemId, quantity } 
+      });
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Update cart item error:', error);
+    dispatch({ 
+      type: CART_UPDATE_FAIL, 
+      payload: error.message 
     });
     return { success: false, error: error.message };
   }

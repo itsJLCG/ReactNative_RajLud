@@ -21,7 +21,7 @@ router.route('/')
   .delete(clearCart);
 
 router.route('/:itemId')
-  .put(updateCartItem)
+  .patch(updateCartItem)
   .delete(removeFromCart);
 
 module.exports = router;

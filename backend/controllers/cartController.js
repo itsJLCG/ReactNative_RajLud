@@ -103,7 +103,7 @@ exports.addToCart = async (req, res) => {
 exports.updateCartItem = async (req, res) => {
   try {
     const { quantity } = req.body;
-    const { itemId } = req.params;
+    const itemId = req.params.itemId; 
 
     if (quantity < 1) {
       return res.status(400).json({

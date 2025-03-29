@@ -11,7 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchCart, removeFromCart } from '../actions/cartActions';
+import { fetchCart, removeFromCart, updateCartItemQuantity } from '../actions/cartActions';
 import { Ionicons } from '@expo/vector-icons';
 
 const CartScreen = ({ navigation }) => {
@@ -97,6 +97,21 @@ const CartScreen = ({ navigation }) => {
     setSelectAll(newSelectAll);
   };
   
+  // Handle quantity updates
+  const handleUpdateQuantity = async (item, newQuantity) => {
+    if (newQuantity < 1) return;
+    
+    try {
+      const result = await dispatch(updateCartItemQuantity(item._id, newQuantity));
+      if (!result.success) {
+        Alert.alert('Error', 'Failed to update quantity');
+      }
+    } catch (err) {
+      console.error('Update quantity error:', err);
+      Alert.alert('Error', 'An error occurred while updating quantity');
+    }
+  };
+  
   const calculateTotal = () => {
     return cartItems
       .filter(item => selectedItems[item._id])
@@ -132,7 +147,6 @@ const CartScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      
             
       {cartItems && cartItems.length > 0 ? (
         <>
@@ -174,17 +188,37 @@ const CartScreen = ({ navigation }) => {
                   <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
                   <View style={styles.priceRow}>
                     <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
-                    <View style={styles.quantityContainer}>
-                      <Text style={styles.quantityText}>Qty: {item.quantity}</Text>
-                    </View>
                   </View>
-                  <TouchableOpacity 
-                    style={styles.removeButton} 
-                    onPress={() => handleRemoveItem(item._id)}
-                  >
-                    <Ionicons name="trash-outline" size={16} color="#fff" />
-                    <Text style={styles.removeButtonText}>Remove</Text>
-                  </TouchableOpacity>
+                  
+                  {/* Quantity Controls */}
+                  <View style={styles.quantityControlsRow}>
+                    <TouchableOpacity 
+                      style={styles.quantityButton}
+                      onPress={() => handleUpdateQuantity(item, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                    >
+                      <Ionicons 
+                        name="remove" 
+                        size={16} 
+                        color={item.quantity <= 1 ? "#D1D5DB" : "#38761d"} 
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityValue}>{item.quantity}</Text>
+                    <TouchableOpacity 
+                      style={styles.quantityButton}
+                      onPress={() => handleUpdateQuantity(item, item.quantity + 1)}
+                    >
+                      <Ionicons name="add" size={16} color="#38761d" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.removeButton} 
+                      onPress={() => handleRemoveItem(item._id)}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#fff" />
+                      <Text style={styles.removeButtonText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             )}
@@ -242,7 +276,7 @@ const CartScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  // ...existing styles
+  // Keep existing styles and add new ones:
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
@@ -285,7 +319,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
   },
-  // Add new styles for checkbox
   selectAllContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -323,7 +356,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
-  // Update cart item style to accommodate checkbox
   cartItem: {
     backgroundColor: 'white',
     borderRadius: 10,
@@ -335,7 +367,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   itemImage: {
     width: 80,
@@ -366,15 +398,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#38761d',
   },
-  quantityContainer: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 5,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+  // New styles for quantity controls
+  quantityControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
-  quantityText: {
-    fontSize: 14,
-    color: '#4B5563',
+  quantityButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quantityValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginHorizontal: 12,
+    minWidth: 20,
+    textAlign: 'center',
   },
   removeButton: {
     backgroundColor: '#EF4444',
@@ -383,7 +429,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
+    marginLeft: 'auto',
   },
   removeButtonText: {
     color: 'white',
