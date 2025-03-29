@@ -129,17 +129,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#38761d" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
-        <View style={styles.placeholderButton} />
-      </View>
-
+      
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Order Summary Card */}
         <View style={styles.card}>
