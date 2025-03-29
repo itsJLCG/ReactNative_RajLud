@@ -78,20 +78,18 @@ const CheckoutScreen = ({ navigation, route }) => {
     setIsProcessing(false);
     
     if (result.success) {
-      // Clear the cart
-      await dispatch(clearCart());
-      
-      // Show success message and navigate to MyOrders screen through the ProfileTab
-      Alert.alert(
-        'Success',
-        'Your order has been placed successfully!',
-        [{ 
-          text: 'OK', 
-          onPress: () => navigation.navigate('ProfileTab', {
-            screen: 'MyOrders',
-          })
-        }]
-      );
+      dispatch(clearCart());
+      Alert.alert('Success', 'Order placed successfully!', [
+        {
+          text: 'Go to Home',
+          onPress: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'HomeDrawer' }], // Navigate to HomeStack
+            });
+          },
+        },
+      ]);
     } else {
       Alert.alert('Error', `Failed to place order: ${result.error}`);
     }
