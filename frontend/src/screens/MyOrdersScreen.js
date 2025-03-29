@@ -6,7 +6,8 @@ import {
   SafeAreaView,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -17,8 +18,16 @@ const MyOrdersScreen = ({ navigation }) => {
   const { orders, loading, error } = useSelector(state => state.orders);
 
   useEffect(() => {
-    dispatch(fetchOrders());
+    loadOrders();
   }, [dispatch]);
+
+  const loadOrders = async () => {
+    try {
+      await dispatch(fetchOrders());
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -36,51 +45,59 @@ const MyOrdersScreen = ({ navigation }) => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const renderOrderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.orderCard}
-      onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
-    >
-      <View style={styles.orderHeader}>
-        <View>
-          <Text style={styles.orderId}>Order #{item.id}</Text>
-          <Text style={styles.orderDate}>{formatDate(item.date)}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.divider} />
-      
-      <View style={styles.orderDetails}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Items</Text>
-          <Text style={styles.detailValue}>{item.items.length} items</Text>
+  const renderOrderItem = ({ item }) => {
+    // Safe access to orderItems array
+    const itemCount = item.orderItems && Array.isArray(item.orderItems) 
+      ? item.orderItems.length 
+      : 0;
+    
+    return (
+      <TouchableOpacity 
+        style={styles.orderCard}
+        onPress={() => navigation.navigate('OrderDetails', { orderId: item._id })}
+      >
+        <View style={styles.orderHeader}>
+          <View>
+            <Text style={styles.orderId}>Order #{item._id?.slice(-6).toUpperCase()}</Text>
+            <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+          </View>
         </View>
         
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Tracking Number</Text>
-          <Text style={styles.detailValue}>{item.trackingNumber || 'Pending'}</Text>
+        <View style={styles.divider} />
+        
+        <View style={styles.orderDetails}>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Items</Text>
+            <Text style={styles.detailValue}>{itemCount} items</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Tracking Number</Text>
+            <Text style={styles.detailValue}>{item.trackingNumber || 'Pending'}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Order Total</Text>
+            <Text style={styles.detailTotal}>${Number(item.total).toFixed(2)}</Text>
+          </View>
         </View>
         
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Order Total</Text>
-          <Text style={styles.detailTotal}>${item.total.toFixed(2)}</Text>
+        <View style={styles.viewDetailsContainer}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <Ionicons name="chevron-forward" size={16} color="#38761d" />
         </View>
-      </View>
-      
-      <View style={styles.viewDetailsContainer}>
-        <Text style={styles.viewDetailsText}>View Details</Text>
-        <Ionicons name="chevron-forward" size={16} color="#38761d" />
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -95,8 +112,11 @@ const MyOrdersScreen = ({ navigation }) => {
       <SafeAreaView style={styles.centered}>
         <Ionicons name="alert-circle-outline" size={60} color="#EF4444" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.retryButtonText}>Go Back</Text>
+        <TouchableOpacity 
+          style={styles.retryButton} 
+          onPress={loadOrders}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -104,22 +124,13 @@ const MyOrdersScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#38761d" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Orders</Text>
-        <View style={styles.placeholderButton} />
-      </View>
+      
 
-      {orders.length > 0 ? (
+      {Array.isArray(orders) && orders.length > 0 ? (
         <FlatList
           data={orders}
           renderItem={renderOrderItem}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item?._id?.toString() || Math.random().toString()}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -140,6 +151,7 @@ const MyOrdersScreen = ({ navigation }) => {
   );
 };
 
+// Keep existing styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

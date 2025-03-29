@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchOrderDetails } from '../actions/orderActions';
+import { fetchOrderDetails, cancelOrder } from '../actions/orderActions';
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   const { orderId } = route.params;
@@ -20,8 +20,16 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   const { currentOrder, loading, error } = useSelector(state => state.orders);
 
   useEffect(() => {
-    dispatch(fetchOrderDetails(orderId));
+    loadOrderDetails();
   }, [dispatch, orderId]);
+
+  const loadOrderDetails = async () => {
+    try {
+      await dispatch(fetchOrderDetails(orderId));
+    } catch (err) {
+      console.error('Error fetching order details:', err);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -41,11 +49,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const handleCancelOrder = () => {
+  const handleCancelOrder = async () => {
     Alert.alert(
       "Cancel Order",
       "Are you sure you want to cancel this order?",
@@ -57,10 +66,17 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         {
           text: "Yes, Cancel Order",
           style: "destructive",
-          onPress: () => {
-            // In real app, this would make an API call
-            Alert.alert("Order Cancelled", "Your order has been cancelled successfully.");
-            navigation.goBack();
+          onPress: async () => {
+            try {
+              const result = await dispatch(cancelOrder(orderId));
+              if (result.success) {
+                Alert.alert("Order Cancelled", "Your order has been cancelled successfully.");
+              } else {
+                Alert.alert("Error", result.error || "Failed to cancel order");
+              }
+            } catch (error) {
+              Alert.alert("Error", "An error occurred while cancelling the order");
+            }
           }
         }
       ]
@@ -108,6 +124,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     );
   }
 
+  // Safely access order items
+  const orderItems = currentOrder.orderItems || [];
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -126,47 +145,23 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         <View style={styles.card}>
           <View style={styles.orderHeader}>
             <View>
-              <Text style={styles.orderId}>{currentOrder.id}</Text>
-              <Text style={styles.orderDate}>Placed on {formatDate(currentOrder.date)}</Text>
+              <Text style={styles.orderId}>Order #{currentOrder._id?.slice(-6).toUpperCase()}</Text>
+              <Text style={styles.orderDate}>Placed on {formatDate(currentOrder.createdAt)}</Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(currentOrder.status) + '20' }]}>
               <View style={[styles.statusDot, { backgroundColor: getStatusColor(currentOrder.status) }]} />
               <Text style={[styles.statusText, { color: getStatusColor(currentOrder.status) }]}>{currentOrder.status}</Text>
             </View>
           </View>
-        </View>
 
-        {/* Tracking Information Card */}
-        {currentOrder.trackingNumber && currentOrder.trackingNumber !== 'Pending' && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Tracking Information</Text>
-            </View>
-
+          {/* Tracking info if available */}
+          {currentOrder.trackingNumber && currentOrder.trackingNumber !== 'Pending' && (
             <View style={styles.trackingInfo}>
-              <Text style={styles.trackingLabel}>Tracking Number:</Text>
+              <Text style={styles.trackingLabel}>Tracking:</Text>
               <Text style={styles.trackingNumber}>{currentOrder.trackingNumber}</Text>
             </View>
-
-            {currentOrder.trackingHistory && (
-              <View style={styles.trackingTimeline}>
-                {currentOrder.trackingHistory.map((event, index) => (
-                  <View key={index} style={styles.trackingEvent}>
-                    <View style={styles.timelineLeft}>
-                      <View style={[styles.timelineDot, { backgroundColor: getStatusColor(event.status) }]} />
-                      {index !== currentOrder.trackingHistory.length - 1 && <View style={styles.timelineLine} />}
-                    </View>
-                    <View style={styles.timelineContent}>
-                      <Text style={styles.trackingStatus}>{event.status}</Text>
-                      <Text style={styles.trackingDate}>{formatDate(event.date)}</Text>
-                      <Text style={styles.trackingLocation}>{event.location}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
+          )}
+        </View>
 
         {/* Order Items Card */}
         <View style={styles.card}>
@@ -174,13 +169,17 @@ const OrderDetailsScreen = ({ navigation, route }) => {
             <Text style={styles.cardTitle}>Items in Your Order</Text>
           </View>
 
-          {currentOrder.items.map((item) => (
-            <View key={item.id} style={styles.orderItem}>
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
+          {orderItems.map((item, index) => (
+            <View key={index} style={styles.orderItem}>
+              <Image 
+                source={{ uri: item.image }} 
+                style={styles.itemImage}
+                defaultSource={require('../assets/placeholder.png')} 
+              />
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
-                <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                <Text style={styles.itemPrice}>${Number(item.price).toFixed(2)}</Text>
               </View>
             </View>
           ))}
@@ -193,19 +192,13 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.addressContainer}>
-            <Text style={styles.addressName}>{currentOrder.shippingAddress.name}</Text>
-            <Text style={styles.addressLine}>{currentOrder.shippingAddress.street}</Text>
+            <Text style={styles.addressName}>{currentOrder.shippingAddress?.name}</Text>
+            <Text style={styles.addressLine}>{currentOrder.shippingAddress?.street}</Text>
             <Text style={styles.addressLine}>
-              {currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} {currentOrder.shippingAddress.zip}
+              {currentOrder.shippingAddress?.city}, {currentOrder.shippingAddress?.state} {currentOrder.shippingAddress?.zip}
             </Text>
-            <Text style={styles.addressLine}>{currentOrder.shippingAddress.country}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.shippingMethod}>
-            <Text style={styles.shippingMethodLabel}>Shipping Method:</Text>
-            <Text style={styles.shippingMethodValue}>{currentOrder.shippingMethod}</Text>
+            <Text style={styles.addressLine}>{currentOrder.shippingAddress?.country}</Text>
+            <Text style={styles.addressLine}>{currentOrder.shippingAddress?.phone}</Text>
           </View>
         </View>
 
@@ -225,27 +218,21 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           <View style={styles.priceBreakdown}>
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Subtotal</Text>
-              <Text style={styles.priceValue}>${currentOrder.subtotal?.toFixed(2)}</Text>
+              <Text style={styles.priceValue}>${Number(currentOrder.subtotal).toFixed(2)}</Text>
             </View>
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Shipping</Text>
-              <Text style={styles.priceValue}>${currentOrder.shippingCost?.toFixed(2) || '0.00'}</Text>
+              <Text style={styles.priceValue}>${Number(currentOrder.shippingCost).toFixed(2)}</Text>
             </View>
             {currentOrder.tax > 0 && (
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Tax</Text>
-                <Text style={styles.priceValue}>${currentOrder.tax.toFixed(2)}</Text>
-              </View>
-            )}
-            {currentOrder.discount > 0 && (
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Discount</Text>
-                <Text style={styles.priceValue}>-${currentOrder.discount.toFixed(2)}</Text>
+                <Text style={styles.priceValue}>${Number(currentOrder.tax).toFixed(2)}</Text>
               </View>
             )}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>${currentOrder.total.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>${Number(currentOrder.total).toFixed(2)}</Text>
             </View>
           </View>
         </View>
@@ -275,6 +262,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
   );
 };
 
+// Keep existing styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -380,7 +368,7 @@ const styles = StyleSheet.create({
   trackingInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginTop: 16,
   },
   trackingLabel: {
     fontSize: 14,
@@ -392,57 +380,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     letterSpacing: 0.5,
-  },
-  trackingTimeline: {
-    marginTop: 8,
-  },
-  trackingEvent: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  timelineLeft: {
-    width: 20,
-    alignItems: 'center',
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: '#E5E7EB',
-    marginTop: 2,
-    marginLeft: 5,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingLeft: 12,
-    paddingBottom: 8,
-  },
-  trackingStatus: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  trackingDate: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
-  trackingLocation: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  orderItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   orderItem: {
     flexDirection: 'row',
@@ -480,7 +417,7 @@ const styles = StyleSheet.create({
     color: '#38761d',
   },
   addressContainer: {
-    marginBottom: 16,
+    marginBottom: 6,
   },
   addressName: {
     fontSize: 15,
@@ -497,20 +434,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E5E7EB',
     marginVertical: 16,
-  },
-  shippingMethod: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  shippingMethodLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginRight: 8,
-  },
-  shippingMethodValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2937',
   },
   paymentMethod: {
     flexDirection: 'row',

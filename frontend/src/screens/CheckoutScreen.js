@@ -29,7 +29,8 @@ const CheckoutScreen = ({ navigation, route }) => {
     city: 'New York',
     state: 'NY',
     zip: '10001',
-    country: 'United States'
+    country: 'United States',
+    phone: '555-123-4567'
   });
   
   // Default payment method - in a real app, this would come from user's saved payment methods
@@ -55,19 +56,22 @@ const CheckoutScreen = ({ navigation, route }) => {
     
     // Create order object with all the order details
     const orderData = {
-      items: cartItems.map(item => ({
-        product: item.id || item.product,
+      orderItems: cartItems.map(item => ({
+        product: item.id || item._id || item.product,
+        name: item.title || item.name,
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        image: item.image
       })),
       shippingAddress: selectedAddress,
       paymentMethod: selectedPaymentMethod.type,
       subtotal: subtotal,
       shippingCost: shipping,
       tax: tax,
-      total: total,
-      trackingNumber: 'Pending'
+      total: total
     };
+    
+    console.log('Sending order data:', JSON.stringify(orderData));
     
     const result = await dispatch(placeOrder(orderData));
     
@@ -89,7 +93,7 @@ const CheckoutScreen = ({ navigation, route }) => {
         }]
       );
     } else {
-      Alert.alert('Error', 'Failed to place order. Please try again.');
+      Alert.alert('Error', `Failed to place order: ${result.error}`);
     }
   };
   
