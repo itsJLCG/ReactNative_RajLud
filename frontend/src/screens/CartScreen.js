@@ -20,6 +20,10 @@ const CartScreen = ({ navigation }) => {
   const { items: cartItems, loading, error } = useSelector(state => state.cart);
   const { user } = useSelector(state => state.auth);
   
+  // Add state for selected items
+  const [selectedItems, setSelectedItems] = useState({});
+  const [selectAll, setSelectAll] = useState(false);
+  
   const loadCart = async () => {
     if (!user) {
       // Handle case where user is not logged in
@@ -34,6 +38,14 @@ const CartScreen = ({ navigation }) => {
     
     if (!result.success && result.error) {
       console.log('Error fetching cart:', result.error);
+    } else {
+      // Initialize all items as selected by default
+      const initialSelection = {};
+      result.items.forEach(item => {
+        initialSelection[item._id] = true;
+      });
+      setSelectedItems(initialSelection);
+      setSelectAll(true);
     }
   };
   
@@ -48,14 +60,52 @@ const CartScreen = ({ navigation }) => {
       if (!result.success) {
         Alert.alert('Error', 'Failed to remove item from cart');
       }
+      // Remove from selected items
+      const updatedSelection = { ...selectedItems };
+      delete updatedSelection[itemId];
+      setSelectedItems(updatedSelection);
     } catch (err) {
       console.error('Remove cart item error:', err);
       Alert.alert('Error', 'An error occurred while removing item');
     }
   };
+
+  // Toggle checkbox for a single item
+  const toggleItemSelection = (itemId) => {
+    const newSelectedItems = { 
+      ...selectedItems,
+      [itemId]: !selectedItems[itemId]
+    };
+    
+    setSelectedItems(newSelectedItems);
+    
+    // Check if all items are selected
+    const allSelected = cartItems.every(item => newSelectedItems[item._id]);
+    setSelectAll(allSelected);
+  };
+  
+  // Toggle all items
+  const toggleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    const newSelectedItems = {};
+    
+    cartItems.forEach(item => {
+      newSelectedItems[item._id] = newSelectAll;
+    });
+    
+    setSelectedItems(newSelectedItems);
+    setSelectAll(newSelectAll);
+  };
   
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2);
+    return cartItems
+      .filter(item => selectedItems[item._id])
+      .reduce((total, item) => total + (item.price * item.quantity), 0)
+      .toFixed(2);
+  };
+  
+  const getSelectedItemCount = () => {
+    return cartItems.filter(item => selectedItems[item._id]).length;
   };
 
   if (loading && !refreshing) {
@@ -82,14 +132,39 @@ const CartScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      
             
       {cartItems && cartItems.length > 0 ? (
         <>
+          {/* Select All Row */}
+          <View style={styles.selectAllContainer}>
+            <TouchableOpacity 
+              style={styles.checkboxContainer} 
+              onPress={toggleSelectAll}
+            >
+              <View style={[styles.checkbox, selectAll && styles.checkboxSelected]}>
+                {selectAll && <Ionicons name="checkmark" size={16} color="#fff" />}
+              </View>
+              <Text style={styles.selectAllText}>Select All</Text>
+            </TouchableOpacity>
+            <Text style={styles.selectedCountText}>
+              {getSelectedItemCount()} of {cartItems.length} selected
+            </Text>
+          </View>
+          
           <FlatList
             data={cartItems}
             keyExtractor={(item) => item._id?.toString()}
             renderItem={({ item }) => (
               <View style={styles.cartItem}>
+                <TouchableOpacity 
+                  style={styles.checkboxContainer}
+                  onPress={() => toggleItemSelection(item._id)}
+                >
+                  <View style={[styles.checkbox, selectedItems[item._id] && styles.checkboxSelected]}>
+                    {selectedItems[item._id] && <Ionicons name="checkmark" size={16} color="#fff" />}
+                  </View>
+                </TouchableOpacity>
                 <Image 
                   source={{ uri: item.image }} 
                   style={styles.itemImage}
@@ -128,13 +203,24 @@ const CartScreen = ({ navigation }) => {
             </View>
             <View style={[styles.totalRow, styles.finalRow]}>
               <Text style={styles.finalTotalLabel}>Total</Text>
-              <Text style={styles.finalTotalValue}>${(parseFloat(calculateTotal()) + 5).toFixed(2)}</Text>
+              <Text style={styles.finalTotalValue}>${getSelectedItemCount() > 0 ? (parseFloat(calculateTotal()) + 5).toFixed(2) : '0.00'}</Text>
             </View>
             <TouchableOpacity 
-              style={styles.checkoutButton}
-              onPress={() => navigation.navigate('Checkout')}
+              style={[styles.checkoutButton, getSelectedItemCount() === 0 && styles.disabledButton]}
+              onPress={() => {
+                if (getSelectedItemCount() > 0) {
+                  // Pass only selected items to checkout
+                  const selectedCartItems = cartItems.filter(item => selectedItems[item._id]);
+                  navigation.navigate('Checkout', { selectedItems: selectedCartItems });
+                } else {
+                  Alert.alert('Selection Empty', 'Please select items to checkout');
+                }
+              }}
+              disabled={getSelectedItemCount() === 0}
             >
-              <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+              <Text style={styles.checkoutButtonText}>
+                Proceed to Checkout ({getSelectedItemCount()} items)
+              </Text>
             </TouchableOpacity>
           </View>
         </>
@@ -156,6 +242,7 @@ const CartScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  // ...existing styles
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
@@ -198,6 +285,45 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
   },
+  // Add new styles for checkbox
+  selectAllContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  checkboxSelected: {
+    backgroundColor: '#38761d',
+    borderColor: '#38761d',
+  },
+  selectAllText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  selectedCountText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  // Update cart item style to accommodate checkbox
   cartItem: {
     backgroundColor: 'white',
     borderRadius: 10,
@@ -209,15 +335,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    alignItems: 'center',
   },
   itemImage: {
     width: 80,
     height: 80,
     borderRadius: 5,
     backgroundColor: '#F3F4F6',
+    marginRight: 12,
   },
   itemDetails: {
-    marginLeft: 12,
+    marginLeft: 0,
     flex: 1,
     justifyContent: 'space-between',
   },
@@ -309,6 +437,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#9CA3AF',
   },
   checkoutButtonText: {
     color: 'white',

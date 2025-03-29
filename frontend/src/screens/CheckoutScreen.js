@@ -15,12 +15,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { clearCart } from '../actions/cartActions';
 import { placeOrder } from '../actions/orderActions';
 
-const CheckoutScreen = ({ navigation }) => {
+const CheckoutScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
-  const cartItems = useSelector(state => state.cart.items);
+  const selectedItems = route.params?.selectedItems;
+  const cartItems = useSelector(state => selectedItems || state.cart.items);
   const { loading } = useSelector(state => state.orders);
   const [isProcessing, setIsProcessing] = useState(false);
- 
+
   // Default shipping address - in a real app, this would come from user's saved addresses
   const [selectedAddress] = useState({
     name: 'John Doe',
@@ -94,16 +95,6 @@ const CheckoutScreen = ({ navigation }) => {
   
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#38761d" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <View style={styles.placeholderButton} />
-      </View>
       
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Delivery Address */}
